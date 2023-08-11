@@ -1,0 +1,154 @@
+﻿@page "/UserPreferenceForm/Reply/{id}/{guidStr}"
+@using Inżynierka.Client.Logics;
+@using Inżynierka.Shared.ViewModels.UserPreferenceForm;
+@using Inżynierka_Services.Listing;
+@inject IApiLogic _apiLogic
+@inject IJSRuntime JS
+@inject NavigationManager NavManager
+<BlazorStyled.Styled>
+    .Create-title-bar
+    {
+    font-size: 24px;
+    font-family: "Open Sans", sans-serif;
+    font-weight: bold;
+    }
+</BlazorStyled.Styled>
+
+
+@if (formData != null)
+{
+    <EditForm Model=@formModel OnValidSubmit="Success">
+        <DataAnnotationsValidator />
+        <div class="mat-layout-grid">
+            <div class="mat-layout-grid-inner">
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+                    <p class="Create-title-bar">Propozycje agenta:</p>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                @{
+                    if (formData.FormResponses != null)
+                    {
+                        foreach (var response in formData.FormResponses)
+                        {
+                            string imgSrc = "";
+                            if (response.OfferThumbnail != null)
+                            {
+                                imgSrc = String.Format("data:image/jpg;base64,{0}", Convert.ToBase64String(response.OfferThumbnail));
+                            }
+                            <SingleFormResponse isAgent=false formId=@Int32.Parse(id) Id=@response.OfferId OfferCity=@response.OfferCity OfferType=@response.OfferType
+                                OfferPrice=@response.OfferPrice OfferTitle=@response.OfferTitle Photo=@imgSrc />
+                        }
+                    }
+                }
+                <MatThemeProvider Theme=@theme>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12"/>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"/>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+                        <p class="Create-title-bar">Prześlij odpowiedź:</p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"/>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"/>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+                        <p>
+                            <MatTextField TextArea="true" FullWidth="true" @bind-Value="formModel.ClientComment" Label="Twój komentarz"></MatTextField>
+                            <ValidationMessage For="@(() => formModel.ClientComment)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"/>
+
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8"/>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatButton Icon="reply" Style="width: 100%;" Type="submit" Raised="true">Wyślij odpowiedź</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"/>
+                </MatThemeProvider>
+            </div>
+        </div>
+    </EditForm>
+}
+@if(showOkModal)
+{
+    <RemoveConfirmationModalDialog 
+        DialogType="RemoveConfirmationModalDialog.ModalDialogType.Ok"
+        Title="Sukces"
+        Text="Odpowiedź została przekazana agentowi."
+        OnClose="@OnOkDialogClose">
+    </RemoveConfirmationModalDialog>
+}
+@if(showErrorModal)
+{
+    <RemoveConfirmationModalDialog 
+        DialogType="RemoveConfirmationModalDialog.ModalDialogType.Ok"
+        Title="Błąd"
+        Text=@errorMessage
+        OnClose="@OnErrorDialogClose">
+    </RemoveConfirmationModalDialog>
+}
+@code {
+    [Parameter]
+    public string? id { get; set; }
+
+    [Parameter]
+    public string? guidStr { get; set; }
+
+    public Guid guid { get; set; }
+
+    ReplyToSuggestionsViewModel formModel = new();
+    FormPageListing? formData = new();
+    public bool disabled = true;
+
+    public bool showOkModal = false;
+    public bool showErrorModal = false;
+    public string errorMessage = "";
+    public async void Success()
+    {
+        string result = await _apiLogic.SendReply(formModel, Int32.Parse(id), guid);
+        await JS.InvokeVoidAsync("console.log", $"result = {result}");
+        if(result == "Success")
+        {
+            showOkModal = true;
+        }
+        else
+        {
+            errorMessage = $"Podczas wysyłania odpowiedzi wystąpił błąd: {result}";
+            showErrorModal = true;
+        }
+        StateHasChanged();
+    }
+
+    private async void OnOkDialogClose(bool accepted)
+    {
+        showOkModal = false;
+        NavManager.NavigateTo("/homepage", true);
+    }
+
+    private async void OnErrorDialogClose(bool accepted)
+    {
+        showErrorModal = false;
+        NavManager.NavigateTo("/homepage", true);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        formModel.ClientComment = "";
+        
+        guid = Guid.Parse(guidStr);
+        formData = await _apiLogic.GetFormDataForReply(Int32.Parse(id));
+
+        if(guid!=formData.guid)
+        {
+            NavManager.NavigateTo("/homepage", true);
+        }
+
+        await base.OnInitializedAsync();
+    }
+
+    MatTheme theme = new()
+        {
+            Primary = "#4caf50",
+            Secondary = "#4caf50",
+            Surface = "#ffffff"
+        };
+}

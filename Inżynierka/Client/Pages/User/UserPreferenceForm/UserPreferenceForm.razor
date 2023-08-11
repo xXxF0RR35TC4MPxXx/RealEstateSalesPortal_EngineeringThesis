@@ -1,0 +1,311 @@
+﻿@page "/User/MyUserPreferenceForms/{id}"
+<PageTitle>Formularz klienta #@id - BuyDom.pl</PageTitle>
+@using Inżynierka.Client.Logics;
+@using Inżynierka_Services.Listing;
+@inject NavigationManager NavManager
+@inject IApiLogic _apiLogic
+@inject IMatToaster Toaster
+@inject IJSRuntime JS
+<BlazorStyled.Styled>
+    .contentBox
+    {
+        border-radius: 15px;
+        box-shadow: rgb(156, 156, 158) 0px 0px 20px -8px;
+        width:100%;
+        min-height: 45vh;
+    height: auto;
+    }
+    .title-text
+    {
+    text-decoration:none;
+    color: black;
+    font-size: 21px;
+    max-width:100%;
+    font-family: "Open Sans", sans-serif;
+    font-weight: bold;
+    word-break: break-word;
+    }
+
+    .splitString
+    {
+        word-break: break-word;
+        font-family: "Open Sans", sans-serif;
+    }
+
+    .thick
+    {
+        font-weight:bold;
+        font-family: "Open Sans", sans-serif;
+    }
+
+</BlazorStyled.Styled>
+<SpinLoader IsLoading="isLoading">
+    <LoadingTemplate>
+        <LoadingScreen Text="Trwa wczytywanie formularza..."/>
+    </LoadingTemplate>
+    <ContentTemplate>
+        <AuthorizeView>
+            <NotAuthorized>
+                @{
+                    if (context.User == null || context.User.Identity == null || !context.User.Identity.IsAuthenticated)
+                    {
+                        NavManager.NavigateTo("/Auth/SignIn");
+                    }
+                }
+            </NotAuthorized>
+            <Authorized>
+                @{
+                    SetUserId(context.User.Claims.FirstOrDefault(x => x.Type == "UserId")?.Value);
+                }
+                @if (formData != null)
+                {
+                <div class="mat-layout-grid">
+                    <div class="mat-layout-grid-inner">
+
+                        <UserPageInfo userId="@userId.ToString()" viewerId="@userId.ToString()" />
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+                            <div class="contentBox mat-layout-grid">
+                               <div class="mat-layout-grid-inner">
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12"><p class="title-text">Klient szuka oferty o poniższych kryteriach:</p></div>
+
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4 splitString"><span class="thick">Typ nieruchomości:</span> @formData.EstateType</div>
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4 splitString"><span class="thick">Min. powierzchnia (m<sup>2</sup>): </span>@(formData.MinArea != null ? formData.MinArea : "Brak")</div>
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4 splitString"><span class="thick">Max. cena:</span> @(formData.MaxPrice != null ? formData.MaxPrice : "Brak")</div>
+                                   
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4 splitString"><span class="thick">Rodzaj oferty:</span> @(formData.OfferType != null ? formData.OfferType : "Sprzedaż lub wynajem")</div>
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4 splitString"><span class="thick">Max. powierzchnia (m<sup>2</sup>):</span> @(formData.MaxArea != null ? formData.MaxArea : "Brak")</div>
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4 splitString"><span class="thick">Liczba pokoi: </span>@(formData.RoomCount != null ? formData.RoomCount : "Brak")</div>
+
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4 splitString"><span class="thick">Miasto:</span> @formData.City</div>
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4 splitString"><span class="thick">Email:</span> <NavLink href="@emailLink">@formData.ClientEmail</NavLink></div>
+                                    @if(formData.ClientPhone!=null && formData.ClientPhone != "")
+                                        {
+                                            <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4 splitString"><span class="thick">Telefon:</span> <NavLink href="@phoneLink">@formData.ClientPhone</NavLink></div>
+                                        }
+                                        else
+                                        {
+                                            <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4 splitString"><span class="thick">Telefon:</span>@formData.ClientPhone</div>
+                                        }
+
+
+                                    @if(formData.ClientComment!=null && formData.ClientComment!="")
+                                    {
+                                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12">
+                                            <p><span class="thick" style="margin-bottom:0px;">Odpowiedź klienta: </span>@formData.ClientComment</p>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12">
+                                            <p class="thick" style="margin-bottom:0px;">Klient nie odpowiedział jeszcze na propozycje.</p>
+                                        </div>
+                                    }
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12"/>
+                               </div>
+                            </div>
+                        </div>
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"/>
+
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-6"/>
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                            <MatThemeProvider Theme="@emailTheme">
+                                    <MatButton Icon="mail_outline" @onclick="()=>OpenEmailDialog()" Outlined="true">Wyślij propozycje</MatButton>
+                            </MatThemeProvider>
+                        </div>
+
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                <MatThemeProvider Theme="@addTheme">
+                                    <MatButton Icon="add" @onclick="()=>OpenAddDialog()" Unelevated="true">Dodaj propozycję</MatButton>
+                                </MatThemeProvider>
+                        </div>
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+
+                            
+
+                        @{
+                            if (formData.FormResponses!=null)
+                            {
+                                foreach(var response in formData.FormResponses)
+                                {
+                                    string imgSrc = "";
+                                    if (response.OfferThumbnail != null)
+                                    {
+                                        imgSrc = String.Format("data:image/jpg;base64,{0}", Convert.ToBase64String(response.OfferThumbnail));
+                                    }
+                                    <SingleFormResponse isAgent=true formId=@Int32.Parse(id) Id=@response.OfferId OfferCity=@response.OfferCity OfferType=@response.OfferType
+                                            OfferPrice=@response.OfferPrice OfferTitle=@response.OfferTitle Photo=@imgSrc />
+                                }
+                            }
+                        }
+                    </div>
+                </div>
+                }
+            </Authorized>
+        </AuthorizeView>
+    </ContentTemplate>
+</SpinLoader>
+@if (isAddDialogOpen)
+{
+    <AddSuggestionModal FormId=@Int32.Parse(id) OnClose="@OnAddDialogClose"/>
+}
+@if (isEmailDialogOpen)
+{
+    <RemoveConfirmationModalDialog DialogType="RemoveConfirmationModalDialog.ModalDialogType.YesNo"
+                               Title="Potwierdzenie wysłania"
+                               Text="Czy na pewno chcesz wysłać te propozycje?"
+                               OnClose="@OnEmailDialogClose">
+    </RemoveConfirmationModalDialog>
+}
+@code {
+    [Parameter]
+    public string id { get; set; } = "";
+
+    public bool isAddDialogOpen = false;
+    public bool isEmailDialogOpen = false;
+
+    FormPageListing? formData = new();
+
+    public string emailLink = "";
+    public string phoneLink = "";
+
+    public bool isLoading = true;
+    public int? userId;
+    private async void SetUserId(string id)
+    {
+        userId = Int32.Parse(id);
+    }
+
+    private void OpenEmailDialog()
+    {
+        isEmailDialogOpen = true;
+        StateHasChanged();
+    }
+
+    private void OpenAddDialog()
+    {
+        isAddDialogOpen = true;
+        StateHasChanged();
+    }
+
+    private async void OnAddDialogClose(string? result)
+    {
+        await JS.InvokeVoidAsync("console.log", $"result = {result}");
+        if (result == "OK")
+        {
+            {
+                isAddDialogOpen = false;
+                NavManager.NavigateTo($"/User/MyUserPreferenceForms/{id}", true);
+            }
+        }
+        else
+        {
+            Show(MatToastType.Danger, $"{result}", "Błąd", "");
+            isAddDialogOpen = false;
+            StateHasChanged();
+        }
+    }
+
+    private async void OnEmailDialogClose(bool accepted)
+    {
+        if (accepted)
+        {
+            var response = await _apiLogic.SendSuggestion(Int32.Parse(id));
+            if (response != "")
+            {
+                Show(MatToastType.Danger, $"{response}", "Błąd", "");
+            }
+            else
+            {
+                isAddDialogOpen = false;
+                NavManager.NavigateTo($"/User/MyUserPreferenceForms/{id}", true);
+            }
+        }
+        else
+        {
+            isEmailDialogOpen = false;
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _showProgressBar = Toaster.Configuration.ShowProgressBar;
+        _showCloseButton = Toaster.Configuration.ShowCloseButton;
+        _maximumOpacity = Toaster.Configuration.MaximumOpacity.ToString();
+        _showTransitionDuration = Toaster.Configuration.ShowTransitionDuration.ToString();
+        _visibleStateDuration = Toaster.Configuration.VisibleStateDuration.ToString();
+        _hideTransitionDuration = Toaster.Configuration.HideTransitionDuration.ToString();
+        _requireInteraction = Toaster.Configuration.RequireInteraction;
+
+        formData = await _apiLogic.GetFormData(Int32.Parse(id));
+        isLoading = false;
+        if(formData!=null)
+        {
+            phoneLink = $"tel:+48{formData.ClientPhone}";
+            emailLink = $"mailto:{formData.ClientEmail}";
+        }
+
+        StateHasChanged();
+        await base.OnInitializedAsync();
+    }
+
+    MatTheme addTheme = new MatTheme()
+        {
+            Primary = "#008000",
+            Secondary = "#008000"
+        };
+        
+    MatTheme emailTheme = new MatTheme()
+    {
+        Primary = "#f3ba00",
+        Secondary = "#f3ba00"
+    };
+
+    #region Toaster
+    private bool _showProgressBar;
+    private bool _showCloseButton;
+    private bool _actionOnClick;
+    private string _maximumOpacity;
+
+    private string _showTransitionDuration;
+    private string _visibleStateDuration;
+    private string _hideTransitionDuration;
+    private bool _requireInteraction;
+    public string _maxDisplayedToasts
+    {
+        get { return Toaster.Configuration.MaxDisplayedToasts.ToString(); }
+        set { Toaster.Configuration.MaxDisplayedToasts = Convert.ToInt32(value); }
+    }
+    private string _toastPosition
+    {
+        get { return Toaster.Configuration.Position.ToString(); }
+        set { Toaster.Configuration.Position = (MatToastPosition)Enum.Parse(typeof(MatToastPosition), value); }
+    }
+
+    public void Show(MatToastType type, string message, string title, string icon = "")
+    {
+        Toaster.Add(message, type, title, icon, config =>
+        {
+            config.ShowCloseButton = _showCloseButton;
+            config.ShowProgressBar = _showProgressBar;
+            config.MaximumOpacity = Convert.ToInt32(_maximumOpacity);
+
+            config.ShowTransitionDuration = Convert.ToInt32(_showTransitionDuration);
+            config.VisibleStateDuration = Convert.ToInt32(_visibleStateDuration);
+            config.HideTransitionDuration = Convert.ToInt32(_hideTransitionDuration);
+
+            config.RequireInteraction = _requireInteraction;
+
+            if (_actionOnClick)
+            {
+                config.Onclick = toast =>
+                {
+                    return Task.CompletedTask;
+                };
+            }
+        });
+    }
+
+    #endregion
+}

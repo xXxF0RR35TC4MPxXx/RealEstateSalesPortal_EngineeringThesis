@@ -1,0 +1,220 @@
+﻿@page "/User/Favourites"
+@using Inżynierka.Client.Handlers;
+@using Inżynierka.Client.Logics;
+@using Inżynierka.Client.Pages.Offer.Search
+@using Inżynierka.Shared.DTOs.Offers.Read;
+@using Inżynierka.Shared.ViewModels.Offer.Filtering;
+@using Inżynierka.Shared.ViewModels.UserFavourites;
+@using Inżynierka_Common.Enums;
+@using Inżynierka_Common.Listing;
+@using Inżynierka_Services.Listing;
+@inject IApiLogic _apiLogic
+@inject NavigationManager NavManager
+<PageTitle>Twoje ulubione oferty - BuyDom.pl</PageTitle>
+<BlazorStyled.Styled>
+    .fav-title-bar
+    {
+        font-size: 24px;
+        font-family: "Open Sans", sans-serif;
+        font-weight: bold;
+    }
+</BlazorStyled.Styled>
+<SpinLoader IsLoading="isLoading">
+    <LoadingTemplate>
+        <LoadingScreen Text="Trwa otwieranie strony ulubionych ofert..."/>
+    </LoadingTemplate>
+    <ContentTemplate>
+        <AuthorizeView>
+            <NotAuthorized>
+                @{
+                    NavManager.NavigateTo("/Auth/SignIn");
+                }
+            </NotAuthorized>
+            <Authorized>
+                @{
+                    SetUserId(context.User.Claims.FirstOrDefault(x => x.Type == "UserId")?.Value);
+                }
+
+                @if (user != null)
+                {
+                    
+                    <div class="mat-layout-grid">
+                        <div class="mat-layout-grid-inner">
+
+                            <UserPageInfo viewerId=@userId.ToString() userId="@userId.ToString()" />
+                            <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+                            <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+                                <p class="fav-title-bar">@PolishConjugationHelper.FavOffers(favourites.TotalCount)</p>
+                            </div>
+                            <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+
+                            @{
+                                if (favourites != null && favourites.FavouritesDTOs != null)
+                                {
+                                    @foreach (OfferListThumbnailDTO offer in favourites.FavouritesDTOs)
+                                    {
+                                        string? imgSrc = null;
+                                        string? logoSrc = null;
+                                        if (offer.Photo != null)
+                                        {
+                                            imgSrc = String.Format("data:image/jpg;base64,{0}", Convert.ToBase64String(offer.Photo));
+                                        }
+                                        if (offer.AgencyLogo != null)
+                                        {
+                                            logoSrc = String.Format("data:image/jpg;base64,{0}", Convert.ToBase64String(offer.AgencyLogo));
+                                        }
+                                        <SingleOfferInSearch MyId=@userId Photo=@imgSrc AgencyLogo=@logoSrc EstateType=@offer.EstateType
+                                             OfferType=@offer.OfferType SellerType=@offer.SellerType AgencyName=@offer.AgencyName
+                                             AgencyId=@offer.AgencyId Area=@offer.Area RoomCount=@offer.RoomCount Id=@offer.Id
+                                             OfferTitle=@offer.OfferTitle City=@offer.City Price=offer.Price
+                                             PricePerMeter=@offer.PriceForOneSquareMeter Voivodeship=@offer.Voivodeship FromUserProfile=true />
+                                    }
+
+                                    <!-- paginator -->
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4" />
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4">
+                                        @if (Page.HasValue && totalPageCount > 0)
+                                        {
+                                            <div style="margin-left: 37.5%;">
+                                                <button class="btn-lg btn" id="prev" @onclick="PrevPage">
+                                                    <i class="fa-solid fa-chevron-left"></i>
+                                                </button>
+
+
+                                                @for (int i = Page.Value - 2; i <= Page + 2; i++)
+                                                {
+                                                    int j = i;
+                                                    @if (i > 0 && i <= totalPageCount)
+                                                    {
+                                                        if (i == Page)
+                                                        {
+                                                            <span class="px-2" style="font-weight:bold;cursor:pointer" @onclick="() => ShowPage(j)">@i</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="px-2" style="cursor:pointer" @onclick="() => ShowPage(j)">@i</span>
+                                                        }
+                                                    }
+                                                }
+
+                                                <button class="btn-lg btn" id="next" @onclick="NextPage">
+                                                    <i class="fa-solid fa-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        }
+                                    </div>
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4" />
+
+                                }
+                            }
+
+                        </div>
+                    </div>
+                }
+            </Authorized>
+        </AuthorizeView>
+    </ContentTemplate>
+</SpinLoader>
+@code {
+    public int? userId;
+    public bool FirstTime = true;
+    private async void SetUserId(string id)
+    {
+        userId = Int32.Parse(id);
+        if(FirstTime)
+        {
+            FirstTime = false;
+            await ShowPage();
+        }
+
+    }
+
+    #region Pagination
+    private int pageSize = 10;
+    private int totalPageCount;
+
+    protected async Task NextPage()
+    {
+        if (Page < totalPageCount)
+        {
+            Page++;
+            await ShowPage();
+        }
+    }
+    protected async Task ShowPage(int i)
+    {
+        Page = i;
+        await ShowPage();
+    }
+
+    protected async Task PrevPage()
+    {
+        if (Page > 1)
+        {
+            Page--;
+            await ShowPage();
+        }
+    }
+
+    #endregion
+
+    public UserOfferListing? user = new();
+    public UserFavouriteListing? favourites = new();
+    public static int? Page = 1;
+    public bool isLoading = true;
+    public UserPageFilteringViewModel? model = new();
+    public UserFavouritesFilterViewModel? favmodel = new();
+    public static Inżynierka_Common.Listing.SortOrder sortOrder = new();
+
+    protected async Task ShowPage()
+    {
+        if (Page == null)
+        {
+            Page = 1;
+        }
+        Paging paging = new()
+            {
+                PageSize = pageSize,
+                PageNumber = Page != null ? Page.Value : 1
+            };
+
+        sortOrder.Sort = new();
+        KeyValuePair<string, string> sort = new("AddedDate", "DESC");
+        sortOrder.Sort.Add(sort);
+
+        model = new()
+            {
+                availableOfferTypes = AvailableOfferTypes.SALE_AND_RENT,
+                availableEstateType = AvailableEstateType.ALL,
+                Paging = paging,
+                SortOrder = sortOrder
+            };
+
+        favmodel = new()
+        {
+            Paging = paging
+        };
+
+        if (userId != null)
+        {
+            user = await _apiLogic.GetUserProfile(model, userId.Value);
+        }
+        favourites = await _apiLogic.GetFavourites(favmodel);
+        if (favourites == null)
+        {
+            totalPageCount = 1;
+        }
+        else
+        {
+            totalPageCount = (favourites.TotalCount + pageSize - 1) / pageSize;
+        }
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ShowPage();
+        await base.OnInitializedAsync();
+    }
+}

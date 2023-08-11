@@ -1,0 +1,106 @@
+﻿@page "/Offer/Update/{offerId}"
+<PageTitle>Edycja oferty - BuyDom.pl</PageTitle>
+@using Inżynierka.Client.Logics
+@using Inżynierka.Shared.DTOs.Offers
+@using Inżynierka.Shared.DTOs.Offers.Read
+@using Inżynierka.Shared.ViewModels.Offer.Update
+@using Inżynierka_Common.Enums
+@using Inżynierka_Common.Helpers
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject IApiLogic _apiLogic
+@inject AuthenticationStateProvider _authStateProvider
+@inject NavigationManager NavManager
+<BlazorStyled.Styled>
+    #Create-title-bar
+    {
+    font-size: 24px;
+    font-family: "Open Sans", sans-serif;
+    font-weight: bold;
+    }
+</BlazorStyled.Styled>
+<AuthorizeView>
+    <NotAuthorized>
+        @{
+            NavManager.NavigateTo("/Auth/SignIn", true);
+        }
+    </NotAuthorized>
+</AuthorizeView>
+@if(typeDto!=null && typeDto.type!=null)
+{
+    if (typeDto.type.Contains(EnumHelper.GetDescriptionFromEnum(EstateType.ROOM)))
+    {
+        <RoomRentingEditForm OfferId=@offerId>
+        </RoomRentingEditForm>
+    }
+    else if (typeDto.type.Contains(EnumHelper.GetDescriptionFromEnum(EstateType.PLOT)))
+    {
+        <PlotOfferEditForm OfferId=@offerId>
+        </PlotOfferEditForm>
+    }
+    else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.HOUSE) + EnumHelper.GetDescriptionFromEnum(OfferType.SALE))
+    {
+        <HouseSaleEditForm OfferId=@offerId>
+        </HouseSaleEditForm>
+    }
+    else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.HOUSE) + EnumHelper.GetDescriptionFromEnum(OfferType.RENT))
+    {
+        <HouseRentEditForm OfferId=@offerId>
+        </HouseRentEditForm>
+    }
+    else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.HALL) + EnumHelper.GetDescriptionFromEnum(OfferType.RENT))
+    {
+        <HallRentEditForm OfferId=@offerId>
+        </HallRentEditForm>
+    }
+    else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.HALL) + EnumHelper.GetDescriptionFromEnum(OfferType.SALE))
+    {
+        <HallSaleEditForm OfferId=@offerId>
+        </HallSaleEditForm>
+    }
+    else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.PREMISES) + EnumHelper.GetDescriptionFromEnum(OfferType.RENT))
+    {
+        <BusinessPremisesRentEditForm OfferId=@offerId>
+        </BusinessPremisesRentEditForm>
+    }
+    else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.PREMISES) + EnumHelper.GetDescriptionFromEnum(OfferType.SALE))
+    {
+        <BusinessPremisesSaleEditForm OfferId=@offerId>
+        </BusinessPremisesSaleEditForm>
+    }
+    else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.GARAGE) + EnumHelper.GetDescriptionFromEnum(OfferType.RENT))
+    {
+        <GarageRentEditForm OfferId=@offerId>
+        </GarageRentEditForm>
+    }
+    else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.GARAGE) + EnumHelper.GetDescriptionFromEnum(OfferType.SALE))
+    {
+        <GarageSaleEditForm OfferId=@offerId>
+        </GarageSaleEditForm>
+    }
+    else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.APARTMENT) + EnumHelper.GetDescriptionFromEnum(OfferType.RENT))
+    {
+        <ApartmentRentEditForm OfferId=@offerId>
+        </ApartmentRentEditForm>
+    }
+    else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.APARTMENT) + EnumHelper.GetDescriptionFromEnum(OfferType.SALE))
+    {
+        <ApartmentSaleEditForm OfferId=@offerId>
+        </ApartmentSaleEditForm>
+    }
+}
+
+
+@code {
+    [Parameter]
+    public string offerId { get; set; }
+    GetTypeDTO? typeDto = null;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await JSRuntime.InvokeVoidAsync("window.scrollTo", new int[] { 0, 1 });
+        typeDto = await Http.GetFromJsonAsync<GetTypeDTO?>($"OfferController/GetType/{int.Parse(offerId)}");
+
+    }
+}

@@ -1,0 +1,64 @@
+﻿@inject IJSRuntime JsRuntime
+@inject NavigationManager _navigationManager
+@using Majorsoft.Blazor.Components.Common.JsInterop.Scroll
+@inject IScrollHandler scroll
+<BlazorStyled.Styled>
+    .title-bar
+    {
+        font-size: 24px;
+        font-family: "Open Sans", sans-serif;
+        font-weight: bold;
+        padding-left: 58px;
+    }
+
+    #offers:before 
+    {
+        visibility:hidden;
+        display: block;
+        height: 50px;
+        content: '';
+    }
+</BlazorStyled.Styled>
+
+<div class="mat-layout-grid-cell mat-layout-grid-cell-span-12" style="border-bottom: 1px solid darkgray; " id="offers"/>
+<div class="mat-layout-grid-cell mat-layout-grid-cell-span-1" />
+<div class="mat-layout-grid-cell mat-layout-grid-cell-span-10" >
+    <p class="title-bar">Znaleziono @Count @OdmianaOferty @Text</p>
+</div>
+<div class="mat-layout-grid-cell mat-layout-grid-cell-span-1" />
+@code {
+    [Parameter]
+    public string Text { get; set; }
+
+    [Parameter]
+    public int Count { get; set; }
+
+    public string OdmianaOferty { get; set; } = "ofert";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Count == 1)
+        {
+            OdmianaOferty = "ofertę";
+        }
+        else if ((Count % 10 == 2 || Count % 10 == 3 || Count % 10 == 4) && !(Count >= 10 && Count <= 20))
+        {
+            OdmianaOferty = "oferty";
+        }
+        else
+        {
+            OdmianaOferty = "ofert";
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (_navigationManager.Uri.Contains("#offers"))
+            {
+                await scroll.ScrollToElementByIdAsync("offers");
+            }
+        }
+    }
+}

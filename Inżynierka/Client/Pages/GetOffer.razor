@@ -1,0 +1,1931 @@
+﻿@page "/Offer/{offerId}"
+@using HtmlAgilityPack
+@using Inżynierka.Client.Handlers
+@using Inżynierka.Client.Logics
+@using Inżynierka.Client.Pages.Offer
+@using Inżynierka.Shared.DTOs.Offers
+@using Inżynierka.Shared.DTOs.Offers.Read
+@using Inżynierka.Shared.Entities
+@using Inżynierka.Shared.Map
+@using Inżynierka.Shared.Map.Models
+@using Inżynierka.Shared.ViewModels
+@using Inżynierka_Common.Enums
+@using Inżynierka_Common.Helpers
+@using System.Dynamic
+@using System.Reflection
+@using System.Runtime.Remoting
+@using System.ComponentModel
+@using System.ComponentModel.DataAnnotations
+@using System.Text.RegularExpressions
+@using Newtonsoft.Json
+@using Newtonsoft.Json.Linq
+@using System.Net
+@using System.Net.Http.Headers
+@using System.Text
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject IApiLogic _apiLogic
+@inject AuthenticationStateProvider _authStateProvider
+@inject NavigationManager NavManager
+<BlazorStyled.Styled>
+    .spinner2 {
+            border: 16px solid silver;
+            border-top: 16px solid #337AB7;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            animation: spin 700ms linear infinite;
+            top: 40%;
+            left: 55%;
+            position: absolute;
+        }
+
+        @@keyframes spin {
+            0% {
+                transform: rotate(0deg)
+            }
+
+            100% {
+                transform: rotate(360deg)
+            }
+        }
+    
+    .carousel {
+    position: relative;
+    }
+
+    .carousel-inner{
+    border-radius: 15px;
+    }
+
+    .carousel-inner > .item {
+    position: relative;
+    display: none;
+    min-height: 430px;
+    -webkit-transition: 0.6s ease-in-out left;
+    -o-transition: 0.6s ease-in-out left;
+    transition: 0.6s ease-in-out left;
+    }
+    .carousel-inner > .item > img,
+    .carousel-inner > .item > a > img {
+    line-height: 1;
+    }
+    @@media all and (transform-3d), (-webkit-transform-3d) {
+    .carousel-inner > .item {
+    -webkit-transition: -webkit-transform 0.6s ease-in-out;
+    -moz-transition: -moz-transform 0.6s ease-in-out;
+    -o-transition: -o-transform 0.6s ease-in-out;
+    transition: transform 0.6s ease-in-out;
+    -webkit-backface-visibility: hidden;
+    -moz-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000px;
+    -moz-perspective: 1000px;
+    perspective: 1000px;
+    }
+    .carousel-inner > .item.next,
+    .carousel-inner > .item.active.right {
+    -webkit-transform: translate3d(100%, 0, 0);
+    transform: translate3d(100%, 0, 0);
+    left: 0;
+    }
+    .carousel-inner > .item.prev,
+    .carousel-inner > .item.active.left {
+    -webkit-transform: translate3d(-100%, 0, 0);
+    transform: translate3d(-100%, 0, 0);
+    left: 0;
+    }
+    .carousel-inner > .item.next.left,
+    .carousel-inner > .item.prev.right,
+    .carousel-inner > .item.active {
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    left: 0;
+    }
+    }
+    .carousel-inner > .active,
+    .carousel-inner > .next,
+    .carousel-inner > .prev {
+    display: block;
+    }
+    .carousel-inner > .active {
+    left: 0;
+    }
+    .carousel-inner > .next,
+    .carousel-inner > .prev {
+    position: absolute;
+    top: 0;
+    width: 100%;
+    }
+    .carousel-inner > .next {
+    left: 100%;
+    }
+    .carousel-inner > .prev {
+    left: -100%;
+    }
+    .carousel-inner > .next.left,
+    .carousel-inner > .prev.right {
+    left: 0;
+    }
+    .carousel-inner > .active.left {
+    left: -100%;
+    }
+    .carousel-inner > .active.right {
+    left: 100%;
+    }
+    .carousel-control {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 15%;
+    font-size: 20px;
+    color: #fff;
+    text-align: center;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    background-color: rgba(0, 0, 0, 0);
+    filter: alpha(opacity=90);
+    opacity: 0.9;
+    }
+    .carousel-control.left:hover {
+    background-image: -webkit-linear-gradient(left, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.0001) 100%);
+    background-image: -o-linear-gradient(left, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.0001) 100%);
+    background-image: linear-gradient(to right, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.0001) 100%);
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#80000000', endColorstr='#00000000', GradientType=1);
+    background-repeat: repeat-x;
+    }
+
+    .carousel-control.left{
+    border-radius: 15px 0 0 15px;
+    }
+
+    .carousel-control.right {
+    right: 0px;
+    left: auto;
+    border-radius: 0 15px 15px 0;
+    }
+
+    .carousel-control.right:hover{
+    background-image: -webkit-linear-gradient(left, rgba(0, 0, 0, 0.0001) 0%, rgba(0, 0, 0, 0.5) 100%);
+    background-image: -o-linear-gradient(left, rgba(0, 0, 0, 0.0001) 0%, rgba(0, 0, 0, 0.5) 100%);
+    background-image: linear-gradient(to right, rgba(0, 0, 0, 0.0001) 0%, rgba(0, 0, 0, 0.5) 100%);
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#00000000', endColorstr='#80000000', GradientType=1);
+    background-repeat: repeat-x;
+    }
+
+    .carousel-control:hover,
+    .carousel-control:focus {
+    color: #fff;
+    text-decoration: none;
+    outline: 0;
+    filter: alpha(opacity=20);
+    opacity: 0.2;
+    }
+    .carousel-control .icon-prev,
+    .carousel-control .icon-next,
+    .carousel-control .glyphicon-chevron-left,
+    .carousel-control .glyphicon-chevron-right {
+    position: absolute;
+    top: 50%;
+    z-index: 5;
+    display: inline-block;
+    margin-top: -10px;
+    }
+    .carousel-control .icon-prev,
+    .carousel-control .glyphicon-chevron-left {
+    left: 50%;
+    margin-left: -10px;
+    }
+    .carousel-control .icon-next,
+    .carousel-control .glyphicon-chevron-right {
+    right: 50%;
+    margin-right: -10px;
+    }
+    .carousel-control .icon-prev,
+    .carousel-control .icon-next {
+    width: 20px;
+    height: 20px;
+    font-family: serif;
+    line-height: 1;
+    }
+    .carousel-control .icon-prev:before {
+    content: "\2039";
+    }
+    .carousel-control .icon-next:before {
+    content: "\203a";
+    }
+    .carousel-indicators {
+    position: absolute;
+    right: 0;
+    left: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    padding: 0;
+    margin-right: 15%;
+    margin-bottom: 1rem;
+    margin-left: 15%;
+    list-style: none;
+    bottom: 20px;
+    position: absolute;
+    width: 70%;
+    padding-left: 0;
+    text-align: center;
+    }
+    .carousel-indicators li {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin: 1px;
+    text-indent: -999px;
+    cursor: pointer;
+    background-color: #000 \9;
+    background-color: rgba(0, 0, 0, 0);
+    border: 1px solid black;
+    border-radius: 10px;
+    }
+    .carousel-indicators .active {
+    width: 12px;
+    height: 12px;
+    margin: 0;
+    background-color: #fff;
+    }
+    .carousel-caption {
+    position: absolute;
+    right: 15%;
+    bottom: 20px;
+    left: 15%;
+    z-index: 10;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    color: #fff;
+    text-align: center;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    }
+    .carousel-caption .btn {
+    text-shadow: none;
+    }
+    @@media screen and (min-width: 768px) {
+    .carousel-control .glyphicon-chevron-left,
+    .carousel-control .glyphicon-chevron-right,
+    .carousel-control .icon-prev,
+    .carousel-control .icon-next {
+    width: 30px;
+    height: 30px;
+    margin-top: -10px;
+    font-size: 30px;
+    }
+    .carousel-control .glyphicon-chevron-left,
+    .carousel-control .icon-prev {
+    margin-left: -10px;
+    }
+    .carousel-control .glyphicon-chevron-right,
+    .carousel-control .icon-next {
+    margin-right: -10px;
+    }
+    .carousel-caption {
+    right: 20%;
+    left: 20%;
+    padding-bottom: 30px;
+    }
+
+
+    .helper {
+    display: inline-block;
+    height: 100%;
+    vertical-align: middle;
+
+    text-align: center; margin: 1em 0;
+    }
+    .frame {
+    margin: 0;
+    height: 430px;
+    display: inline-block;
+    vertical-align: top; /*not required*/
+    position: relative;
+    }
+
+    .imgxd {
+    min-height: 100%;
+    max-width: 100%;
+    width: auto;
+
+    object-fit: cover;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+    }
+
+    #allContent{
+    width: 86.6%;
+    margin-left: auto;
+    margin-right: auto;
+    overflow: hidden;
+    font-family: "Open Sans", sans-serif;
+    }
+
+    #top-bar{
+    font-weight: 600;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    padding: 10px;
+    margin-bottom: 10px;
+    box-shadow: 0px 0px 20px -8px rgba(156, 156, 158, 1);
+    border-radius: 15px;
+    }
+
+    #top-bar a{
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    }
+
+    #left-part{
+    width: 60%;
+    float:left;
+    padding: 10px;
+    }
+    #right-part{
+    overflow: hidden;
+    padding: 10px;
+    }
+
+    #user-info{
+    box-shadow: 0px 0px 20px -8px rgba(156, 156, 158, 1);
+    }
+
+    #user-info-text{
+    max-width: 60%;
+    float:left;
+    }
+
+    #user-name{
+    padding: 10px;
+    padding-left: 15px;
+    }
+
+    #user-phone{
+    padding: 10px;
+    padding-left: 15px;
+    }
+
+    #user-link{
+    padding: 10px;
+    text-decoration: none;
+    padding-left: 15px;
+    }
+
+    #user-info-avatar{
+    overflow: hidden;
+    float: right;
+    height: 150px;
+    width: 150px;
+    border-radius: 10%;
+    margin-left: auto;
+    top: 50%;
+    transform: translateY(-50%);
+    bottom: auto;
+    right: 5%;
+    position: relative;
+    }
+
+
+    .avatar-img{
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    bottom: auto;
+    right: 0%;
+    width: 150px;
+    height: 150px;
+    }
+
+    #title-bar{
+    min-height: 100px;
+    position: relative;
+    border-radius: 15px;
+    }
+
+    #most-important-info{
+    padding-left: 10px;
+    padding-bottom: 10px;
+    text-align: center;
+    display: inline-block;
+    width: 100%;
+    border-radius: 15px;
+    }
+
+    .clearfix:after {
+    content: "";
+    display: table;
+    clear: both;
+    }
+
+    #all-info{
+    min-height: 200px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    padding-top: 10px;
+    border-radius: 15px;
+    padding: 25px;
+    }
+
+    #myMap{
+    width: 100%;
+    height: 70vh;
+    border-radius: 15px;
+    margin-bottom: 10px;
+    }
+    #more-user-offers{
+    display: block;
+    overflow: auto;
+    margin-bottom: 10px;
+    border-radius: 15px;
+    }
+
+    #offer-title{
+    font-weight: bold;
+    max-width: 70%;
+    padding-left: 10px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    }
+
+    #offer-title2{
+    font-size: 24px;
+    padding-left: 8px;
+    padding-top: 5px;
+    }
+
+    #offer-address{
+    font-weight: 600;
+    }
+
+    #offer-price{
+    font-weight: 700;
+    top: 10px;
+    position: absolute;
+    right: 2%;
+    font-size: 28px;
+    }
+
+    #offer-pricepermeter{
+    float:right;
+    position: absolute;
+    right: 2%;
+    top: 50px;
+    color: darkgray;
+    }
+
+    #buttons{
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 15px;
+    }
+
+
+    /* button styling */
+
+    .singleTile::before
+    {
+    margin:auto;
+    position:absolute;
+    margin-left: auto;
+    margin-right: auto;
+    left: 0;
+    right: 0;
+
+    margin-top: auto;
+    margin-bottom: auto;
+    top: 35%;
+    bottom: 0;
+
+    font-size: 70px;
+    content: var(--symbol);
+    opacity: 0.5;
+    font-family: FontAwesome;
+    z-index: 1;
+    color:#e9e9e9;
+    }
+
+    .singleTile::after {
+    content: '';
+    position: absolute;
+    z-index: 5;
+    top: -100%;
+    right: -50%;
+    bottom: -50%;
+    left: -100%;
+    background: linear-gradient(to bottom, rgba(229, 172, 142, 0), rgba(255,255,255,0.7) 70%, rgba(229, 172, 142, 0));
+    transform: rotateZ(60deg) translate(-10em, 15em);
+    }
+
+    .singleTile {
+    background: white;
+    color: #fff;
+    font-size: 17px;
+    border-radius: 0.5em;
+    width: 130px;
+    height: 130px;
+    position: relative;
+    overflow: hidden;
+    line-height: 32px;
+    z-index: 2;
+    margin-right: 10px;
+    margin-top: 10px;
+    border:0;
+    box-shadow: 1px 1px 1px 1px darkgray;
+    }
+
+    .singleTile:hover{
+    cursor: default;
+    }
+
+    .singleTile:hover::after, #singleTile:focus::after {
+    animation: sheen 1s forwards;
+    }
+
+    @@keyframes sheen {
+    100% {
+    transform: rotateZ(60deg) translate(15em, -24em);
+    }
+    }
+
+    .num
+    {
+    font-family: "Open Sans", sans-serif;
+    position:relative;
+    font-weight: 400;
+    font-size: var(--size);
+    color: #757575;
+    z-index: 999;
+    margin-top: 30%;
+    margin-bottom: 26%;
+    }
+
+    .bottom_text
+    {
+    font-family: "Open Sans", sans-serif;
+    position:relative;
+    font-size: 17px;
+    font-weight: 400;
+    color: #757575;
+    z-index: 998;
+    margin-bottom: 10%;
+    margin-top: 0;
+    line-height: 10px;
+    }
+
+
+
+    @@keyframes box {
+    0% {
+    box-shadow: #27272c;
+    }
+    50% {
+    box-shadow: 0 0 25px var(--clr);
+    }
+    100% {
+    box-shadow: #27272c;
+    }
+    }
+
+
+
+    @@import url('https://fonts.googleapis.com/css?family=Open+Sans');
+
+
+
+    #allInfoTable
+    {
+    width: 94%;
+    margin-top: 2%;
+    margin-bottom: 2%;
+    margin-left: 3%;
+    margin-right: 3%;
+    padding: 0.9%;
+    padding-left: 0%;
+    }
+
+    .allInfoRow{
+    border-top: 1px solid #e6e8e6;
+    border-bottom: 1px solid #e6e8e6;
+
+    }
+
+    #myBtnText{
+    margin-top: 15px;
+    }
+
+    .allInfoEntryKey{
+    width: 45%;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    }
+
+    .allInfoEntryValue{
+    font-weight: bold;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    }
+
+    #allInfoBanner{
+    font-size: 24px;
+    font-weight: 600;
+    }
+
+    #addedDate{
+    padding: 1.8%;
+    border-radius: 15px;
+    }
+
+    #agency-logo {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    bottom: auto;
+    max-height: 150px;
+    max-width: 150px;
+    right: 5%;
+    border-radius: 10%;
+    }
+
+    #show-seller-phone{
+    color: #41b501;
+    font-weight:bold;
+    }
+
+    #seller-name-text{
+    font-weight:bold;
+    color: darkblue;
+    }
+
+    #show-seller-phone:hover{
+    cursor:pointer;
+    }
+
+    #show-agency-phone{
+    text-decoration:none;
+    color: #41b501;
+    font-weight:bold;
+    }
+
+    #show-agency-phone:hover{
+    cursor:pointer;
+    }
+
+    #user-link-text{
+    text-decoration:none;
+    color: #3c21c2;
+    font-weight:bold;
+    }
+
+    #agency-link-text{
+    text-decoration:none;
+    color: #3c21c2;
+    font-weight:bold;
+    }
+
+    #user-info{
+    height: 203px;
+    margin-bottom: 10px;
+    border-radius: 15px;
+    }
+
+    #description{
+    margin-top:10px;
+    margin-bottom:10px;
+    border-radius: 15px;
+    }
+
+    .container2{
+    height: 430px;
+    padding: 0 !important;
+    box-shadow: 0px 0px 20px -8px rgba(156, 156, 158, 1);
+    border-radius: 15px;
+    }
+
+    .singleExtraOffer{
+    float: left;
+    width: 22.4%;
+    height: 35vh;
+    margin: 10px;
+    }
+
+    #agencyInfo{
+    border-radius: 15px;
+    box-shadow: 0px 0px 20px -8px rgba(156, 156, 158, 1);
+    float: left;
+    width: 100%;
+    }
+
+    .singleExtraOffer p{
+    margin-bottom: 0;
+    }
+
+    .singleExtraOffer a{
+    text-decoration: none;
+    color: black;
+    }
+
+    #agency-name {
+    padding: 10px;
+    padding-left: 15px;
+    }
+
+    #agency-phone {
+    padding: 10px;
+    padding-left: 15px;
+    }
+
+    #agency-link {
+    padding: 10px;
+    padding-left: 15px;
+    }
+
+    .moreImg{
+    border: 1px solid red;
+    width:100%;
+    height:40%;
+    }
+    .morePrice{
+    font-weight: 700;
+    font-size: 24px;
+    }
+    .moreMeter{
+    font-weight: normal;
+    }
+    .moreTitle{
+    font-weight: lighter;
+    }
+
+    .fav:hover .fa-heart-o,
+    .fav .fa-heart {
+    display: none;
+    }
+    .fav:hover .fa-heart {
+    display: inline;
+    }
+
+    .unfav:hover .fa-heart,
+    .unfav .fa-heart-broken {
+    display: none;
+    }
+    .unfav:hover .fa-heart-broken {
+    display: inline;
+    }
+
+    #return-button{
+    margin-right: 1%; position: absolute; bottom: 3%; right:1%; z-index:5;
+    }
+
+</BlazorStyled.Styled>
+<SpinLoader IsLoading="isLoading">
+    <LoadingTemplate>
+        <LoadingScreen Text="Trwa otwieranie strony oferty..."/>
+        <AuthorizeView>
+            <Authorized>
+                @{
+                    SetUserId(context.User.Claims.FirstOrDefault(x => x.Type == "UserId")?.Value);
+                }
+            </Authorized>
+        </AuthorizeView>
+    </LoadingTemplate>
+    <ContentTemplate>
+        @if (offer is not null)
+        {
+            <PageTitle>@offer.OfferTitle - BuyDom.pl</PageTitle>
+            <div id="allContent">
+                <div id="left-part">
+                    <!--top bar (return button, type, city, title anchors)-->
+                    <div id="top-bar">
+                        <MatThemeProvider Theme="@theme1">
+                            <MatButton @onclick="GoBack" Outlined="true" Icon="keyboard_arrow_left" style="margin-right: 1%;">Wróć</MatButton>
+                        </MatThemeProvider>
+
+                        <NavLink href="@GetOverallSearchLink()">@offer.EstateType na @offer.OfferType</NavLink> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-right" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z" />
+                        </svg>
+                        <NavLink href="@GetCitySearchLink()">@offer.City</NavLink> <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-right" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z" />
+                        </svg>
+                        <NavLink href="@GetThisLink()">@offer.OfferTitle</NavLink>
+                    </div>
+
+                    <!--photo gallery-->
+                    <div class="container2">
+                            <SpinLoader IsLoading="isLoadingPhotos">
+                            <LoadingTemplate>
+                                <div>
+                                    <br /><br /><br /><br /><br /><br /><br />
+                                    <CircleFade Center="true" size="70px"></CircleFade>
+                                    <br /><br />
+                                </div>
+                            </LoadingTemplate>
+                            <ContentTemplate>
+                                    <div id="myCarousel" class="carousel slide" data-ride="carousel">
+
+                                        <!-- Indicators -->
+                                        <ol class="carousel-indicators">
+                                            @for (int i = 0; i < photoCount; i++)
+                                            {
+                                                <li data-target="#myCarousel" class=@(i==0?active:"") data-slide-to=@i></li>
+                                            }
+                                        </ol>
+
+                                        <!--Wrapper for slides-->
+                                        <div class="carousel-inner">
+                                            @if (photosList != null && photosList.Count() > 0)
+                                            {
+                                                foreach (var photo in photosList)
+                                                {
+                                                    var base64 = Convert.ToBase64String(photo);
+                                                    var imgSrc = String.Format("data:image/jpg;base64,{0}", base64);
+
+                                                    <div class="frame item @(photoIteration==0 ? active: "")">
+                                                        <img src='@imgSrc' class="imgxd">
+                                                    </div>
+                                                    photoIteration++;
+                                                }
+                                                photoIteration = 0;
+                                            }
+                                            else
+                                            {
+                                                <div class="frame item @(photoIteration==0? active: "") ">
+                                                    <img src='./images/placeholder.jpg' class="imgxd">
+                                                </div>
+                                            }
+                                        </div>
+
+                                        <!-- Left and right controls -->
+                                        <a class="left carousel-control" href="Offer/@offer.Id/#myCarousel" data-slide="prev">
+                                            <span class="glyphicon glyphicon-chevron-left" style="text-decoration:none;">&#60;</span>
+                                            <span class="sr-only"></span>
+                                        </a>
+                                        <a class="right carousel-control" href="Offer/@offer.Id/#myCarousel" data-slide="next">
+                                            <span class="glyphicon glyphicon-chevron-right" style="text-decoration:none;">&#62;</span>
+                                            <span class="sr-only"></span>
+                                        </a>
+
+                                        <!-- fullscreen button -->
+                                        <MatThemeProvider Theme="@theme2">
+                                            <MatButton Unelevated="true" OnClick="@FullSizePhoto" id="return-button"><MatIcon Icon="fullscreen"></MatIcon></MatButton>
+                                        </MatThemeProvider>
+
+                                    </div>
+                                
+                            </ContentTemplate>
+                        </SpinLoader>
+                    </div>
+                    
+                    <!--title bar-->
+                    <div id="title-bar" style="box-shadow: 0px 0px 20px -8px rgba(156, 156, 158, 1);">
+                        <div id="offer-title">
+                            <p id="offer-title2">@offer.OfferTitle</p>
+                            <p id="offer-address">
+                                📍@offer.City @(isAddressAndMapVisible?$"- {offer.Address}":"")
+                            </p>
+                            @if (offer.AgencyId!=null && offer.SellerId == userId) 
+                            {
+                                <MatThemeProvider Theme="@theme1">
+                                    <MatButton OnClick="@(()=>ShowVisibilityModal())" Icon="visibility">Zmień widoczność adresu</MatButton>
+                                </MatThemeProvider>
+                            }
+                        </div>
+                        <div id="offer-price">@offer.Price zł @(offer.OfferType == EnumHelper.GetDescriptionFromEnum(OfferType.RENT) ? "/ msc" : "")</div>
+                        <div id="offer-city"></div>
+                        <div id="offer-pricepermeter">@offer.PriceForOneSquareMeter zł/m<sup>2</sup></div>
+                    </div>
+
+                    <!--most important info -->
+                    <div style="box-shadow: 0px 0px 20px -8px rgba(156, 156, 158, 1); border-radius: 15px;">
+                        <div style="position: relative; padding: 15px 0px 10px 20px;">
+                            <span style="font-size: 24px; text-align: left;"><b>Szczegóły oferty:</b><br /></span>
+                        </div>
+
+                        <div id="most-important-info">
+
+                            @if (offer != null)
+                            {
+                                @if(offer.RoomCount>0)
+                                {
+                                    <button class="singleTile" style="--symbol:'\f52b'">
+                                        <p class="num" style="--size: 69px; font-weight: 400;">@offer.RoomCount</p>
+                                        <p class="bottom_text">Liczba pokoi</p>
+                                    </button>
+                                }
+                                @if (HasProperty(offer, "Area") && offer.Area!=null)
+                                {
+                                    <button class="singleTile" style="--symbol:'\f546'">
+                                    <p class="num" style="margin-top: 29.3%;margin-bottom: 11.2%; --size: @(offer.Area > 99 ? "55px" : (offer.Area > 9 ? "60px" : "69px")); ">@offer.Area<span style="font-size: 20px;">m<sup>2</sup></span></p>
+                                    <p class="bottom_text" style="margin-bottom: 5.5%;">Pow. lokalu</p>
+                                </button>
+                                }
+                                
+                                @if (HasProperty(offer, "LandArea") && offer.LandArea!=null)
+                                {
+                                    <button class="singleTile" style="--symbol:'\f1fe'">
+                                        <p class="num" style="margin-top: 29.3%;margin-bottom: 11.2%; --size: @(offer.LandArea > 99 ? "55px" : (offer.LandArea > 9 ? "60px" : "69px")); ">@offer.LandArea<span style="font-size: 20px;">m<sup>2</sup></span></p>
+                                        <p class="bottom_text" style="margin-bottom: 5.5%;">Pow. podwórza</p>
+                                    </button>
+                                }
+                                @if (HasProperty(offer, "Floor") && offer.Floor!=null && offer.Floor!="")
+                                {
+                                    <button class="singleTile" style="--symbol:'\f5fd'; margin-left: 4px; margin-right: 14px;">
+                                        <p class="num" style="--size: @(offer.Floor.Length > 1 ? "25px" : "69px");">@offer.Floor</p>
+                                        <p class="bottom_text">Piętro</p>
+                                    </button>
+                                }
+                                @if (HasProperty(offer, "HeatingType") && offer.HeatingType!=null && offer.HeatingType!="")
+                                {
+                                    <button class="singleTile" style="--symbol:'\f06d'">
+                                        <p class="num" style="--size: 26px; font-weight: 500;">@offer.HeatingType</p>
+                                        <p class="bottom_text">Ogrzewanie</p>
+                                    </button>
+                                }
+
+                                @if (HasProperty(offer, "ParkingSpace") && offer.ParkingSpace!=null)
+                                {
+                                    if(offer.ParkingSpace is string)
+                                    {
+                                        <button class="singleTile" style="--symbol:'\f1b9'">
+                                            <p class="num" style="--size: 39px">@(offer.ParkingSpace != "" && offer.ParkingSpace != "Brak"  ? "Tak" : "Nie")</p>
+                                            <p class="bottom_text">Parking</p>
+                                        </button>
+                                    }
+                                    else if(offer.ParkingSpace is bool)
+                                    {
+                                        <button class="singleTile" style="--symbol:'\f1b9'">
+                                            <p class="num" style="--size: 39px">@(offer.ParkingSpace == true ? "Tak" : "Nie")</p>
+                                            <p class="bottom_text">Parking</p>
+                                        </button>
+                                    }
+                                    
+                                }
+
+                                @if (HasProperty(offer, "FinishCondition")&& offer.FinishCondition!=null)
+                                {
+                                    <button class="singleTile" style="--symbol:'\f6e3'">
+                                        <p class="num" style="--size: @(offer.FinishCondition.Length>10?"15px":"20px"); font-weight: 500;">@offer.FinishCondition</p>
+                                        <p class="bottom_text">Wykończenie</p>
+                                    </button>
+                                }
+
+                                @if (HasProperty(offer, "Rent")&& offer.Rent!=null) //kaucja
+                                {
+                                    <button class="singleTile" style="--symbol:'\f155'">
+                                        <p class="num" style="--size: 36px; font-weight: 400;">@string.Concat(offer.Rent, "zł")</p>
+                                        <p class="bottom_text">Czynsz</p>
+                                    </button>
+                                }
+                                @if (HasProperty(offer, "Deposit")&& offer.Deposit!=null) //kaucja
+                                {
+                                    <button class="singleTile" style="--symbol:'\f155'">
+                                        <p class="num" style="--size: 36px; font-weight: 400;">@string.Concat(offer.Deposit, "zł")</p>
+                                        <p class="bottom_text">Kaucja</p>
+                                    </button>
+                                }
+                                @if (HasProperty(offer, "RemoteControl")&& offer.RemoteControl!=null)
+                                {
+                                    <button class="singleTile" style="--symbol:'\f1eb'">
+                                        <p class="num" style="--size: 39px">@(offer.RemoteControl == true ? "Tak" : "Nie")</p>
+                                        <p class="bottom_text">Obsługa zdalna</p>
+                                    </button>
+                                }
+                                @if (HasProperty(offer, "Balcony"))
+                                {
+                                    if (offer.Balcony == true)
+                                    {
+                                        <button class="singleTile" style="--symbol:'\f1bb'">
+                                            <p class="num" style="--size: 34px">Balkon</p>
+                                            <p class="bottom_text">&nbsp;</p>
+                                        </button>
+                                    }
+                                }
+                            }
+                        </div>
+                    </div>
+
+                    <!-- description -->
+                    <div id="description" style="box-shadow: 0px 0px 20px -8px rgba(156, 156, 158, 1);">
+                        <p>
+                            <span style="font-size: 24px;"><b>Opis oferty:</b><br /></span>
+                            @((MarkupString)description1)
+                            @if (description2.Length > 0)
+                            {
+                                <span id="dots">...</span>
+
+                                <span id="more" style="display: none;">@((MarkupString)description2)</span>
+                            }
+                        </p>
+                        @if (description2.Length > 0)
+                        {
+                            <MatThemeProvider Theme="@theme1">
+                                <MatButton id="myBtn" Outlined="true" OnClick="@ShowDescription"><p id="myBtnText">Czytaj więcej &gt;</p></MatButton>
+                            </MatThemeProvider>
+
+                        }
+                    </div>
+
+                    <!-- all info -->
+                    @if (allInfo != null)
+                    {
+                        <div id="all-info" style="box-shadow: 0px 0px 20px -8px rgba(156, 156, 158, 1);">
+                            <p id="allInfoBanner">Wszystkie informacje:</p>
+                            <table id="allInfoTable" style="width:100%;">
+                                @foreach (var entry in allInfo)
+                                {
+                                    @if(entry.Key!="Liczba pokoi: " && entry.Value.ToString() != "0")
+                                    {
+                                         <tr class="allInfoRow">
+                                            <td class="allInfoEntryKey">@entry.Key</td>
+                                            <td class="allInfoEntryValue">@(entry.Value!=null && entry.Value!=""?entry.Value:"Brak danych")</td>
+                                        </tr>
+                                    }
+                                }
+                            </table>
+
+                        </div>
+                    }
+
+                    <!-- map -->
+                    @if(isAddressAndMapVisible==true)
+                    {
+                        <div id="myMap" style="box-shadow: 0px 0px 20px -8px rgba(156, 156, 158, 1);"></div>
+                    }
+
+                    <!-- more user offers -->
+                    @if (offers != null && offers.Count() > 0)
+                    {
+                        <div id="more-user-offers" class="clearfix" style="box-shadow: 0px 0px 20px -8px rgba(156, 156, 158, 1);">
+                            <div style="position: relative; padding: 15px 0px 10px 20px;">
+                                <span style="font-size: 24px; text-align: left;"><b>Inne oferty użytkownika:</b><br /></span>
+                            </div>
+
+                            @foreach (var moreOffer in offers)
+                            {
+                                string base64 ="";
+                                string imgSrc = "";
+                                if (moreOffer.Photo != null)
+                                {
+                                    base64 = Convert.ToBase64String(@moreOffer.Photo);
+                                    imgSrc = String.Format("data:image/jpg;base64,{0}", base64);
+                                }
+                                else
+                                {
+                                    imgSrc = "./images/placeholder.jpg";                                    
+                                }
+                                <div class="singleExtraOffer">
+                                    <NavLink href="@($"Offer/{moreOffer.Id}")">
+                                        <img class="moreImg" src="@imgSrc" />
+
+                                        <p class="morePrice">
+                                            @Decimal.ToInt32(moreOffer.Price)zł
+                                            @if (moreOffer.ForSaleOrForRent.ToLower() == "wynajem")
+                                            {
+                                                <span> / msc</span>
+                                            }
+                                        </p>
+                                        <p class="moreMeter">@moreOffer.Area m<sup>2</sup></p>
+                                        <p class="moreTitle">@moreOffer.OfferTitle</p>
+                                    </NavLink>
+                                </div>
+                            }
+
+
+                        </div>
+                    }
+                    <div id="addedDate" style="box-shadow: 0px 0px 20px -8px rgba(156, 156, 158, 1);">
+                        <b>Dodano dnia:</b> @offer.AddingDate
+                    </div>
+                </div>
+                <div id="right-part">
+                    <MatThemeProvider Theme="@theme1">
+                        <div id="buttons" style="box-shadow: 0px 0px 20px -8px rgba(156, 156, 158, 1);" class="mat-blazor-demo-theme-app-row">
+                            @{
+                                if (offer.SellerId == userId)
+                                {
+                                    <MatButton @onclick="()=>NavigateToEditForm()" Outlined="true" Icon="edit" style="margin-right: 5px; margin-left: 3px;">Edytuj</MatButton>
+                                    <MatButton @onclick="()=>OpenDeleteDialog()" Outlined="true" Icon="delete" style="margin-right: 5px;">Usuń</MatButton>
+                                    <MatButton @onclick="()=>OpenContractDialog()" Outlined="true" Icon="description" style="margin-right: 10px;">Generuj umowę</MatButton>
+                                }
+
+                                if (isFav)
+                                {
+                                    <MatButton class="unfav" @onclick="()=>RemoveFromFavourites()" Outlined="true">
+                                        <i class="fas fa-heart" style="color: #008000;"></i>
+                                        <i class="fas fa-heart-broken" style="color: #008000;"></i
+                                    </MatButton>
+                                }
+                                else
+                                {
+                                    <MatButton class="fav" @onclick="()=>AddToFavourites()" Outlined="true">
+                                        <i class="fa fa-heart-o" style="color: #008000;"></i>
+                                        <i class="fas fa-heart" style="color: #008000;"></i>
+                                    </MatButton>
+                                }
+                            }
+                        </div>
+                    </MatThemeProvider>
+                    <div id="user-info">
+                        <div id="user-info-text">
+                            <div id="user-name">
+                                <span id="seller-text"><b>Sprzedawca:</b></span><br />
+                                <span id="seller-name-text">@offer.SellerName</span>
+                            </div>
+                            <div id="user-phone">
+                                <b>Numer telefonu:</b> @phone <p style="width:@(buttonUserPhoneVisible?"31%;":"1px;")" id="show-seller-phone" @onclick="showFullSellerPhone">@((MarkupString)showSellerPhoneText)</p>
+                            </div>
+                            <div id="user-link">
+                                <NavLink id="user-link-text" href="@GetUserProfileLink()">Zobacz więcej moich ofert >></NavLink>
+                            </div>
+                        </div>
+                        <div id="user-info-avatar">
+                            @{
+                                if (offer.SellerAvatar != null)
+                                {
+                                    var base64 = Convert.ToBase64String(offer.SellerAvatar);
+                                    var imgSrc = String.Format("data:image/jpg;base64,{0}", base64);
+                                        <img class="avatar-img" src="@imgSrc" />
+                                }
+                                else
+                                {
+                                        <img class="avatar-img" src="../images/avatar_placeholder.jpg" />
+                                }
+                            }
+                        </div>
+                    </div>
+                    <div id="agencyInfo">
+                        @if (offer.AgencyId != null)
+                        {
+                            <div id="agency-info-text">
+                                <div id="agency-name">
+                                    <span id="seller-text"><b>Biuro nieruchomości:</b></span><br />
+                                    <span id="seller-name-text">@offer.AgencyName</span>
+                                </div>
+                                <div id="agency-phone">
+                                    <b>Numer telefonu:</b> @agencyphone <p id="show-agency-phone" style="width:@(buttonAgencyPhoneVisible?"15%;":"1px;")" @onclick="showFullAgencyPhone">@((MarkupString)showAgencyPhoneText)</p>
+                                </div>
+                                <div id="agency-link">
+                                    <NavLink id="agency-link-text" href="@GetAgencyProfileLink()">Zobacz więcej naszych ofert >></NavLink>
+                                </div>
+                            </div>
+                            <div id="agency-info-avatar">
+                                @{
+                                    if (offer.AgencyLogo != null)
+                                    {
+                                        var base64 = Convert.ToBase64String(offer.AgencyLogo);
+                                        var imgSrc = String.Format("data:image/jpg;base64,{0}", base64);
+                                            <img id="agency-logo" src="@imgSrc" />
+                                    }
+                                    else
+                                    {
+                                            <img id="agency-logo" src="../images/agency_logo_placeholder.jpg" />
+                                    }
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+        }
+        @if(isContractDialogOpen)
+        {
+
+            <ChooseContractTypeModalDialog Title="Generowanie umowy"
+                DialogType=@thisOfferType
+                Text="Wybierz typ umowy do wygenerowania."
+                OnClose="@OnContractDialogClose">
+            </ChooseContractTypeModalDialog>
+        }
+
+        @if(isVisibilityModalOpen)
+        {
+            <OfferAddressVisibilityModal Title="Ukrywanie adresu" offerId="@Int32.Parse(offerId)" OnClose="@OnVisibilityModalClose"/>
+        }
+
+        @if (isDeleteDialogOpen)
+        {
+            <RemoveConfirmationModalDialog 
+                DialogType="RemoveConfirmationModalDialog.ModalDialogType.DeleteCancel"
+                Title="Potwierdzenie usunięcia"
+                Text="Czy na pewno chcesz usunąć tą ofertę?"
+                OnClose="@OnDeleteDialogClose">
+            </RemoveConfirmationModalDialog>
+        }
+    </ContentTemplate>
+</SpinLoader>
+@if (offerNotFound)
+{
+    <NotFound Text="Wybrana oferta nie istnieje lub została usunięta." />
+}
+@code {
+        #region Variables
+        [Parameter]
+        public string offerId { get; set; }
+    public dynamic? offer { get; set; }
+    public string active = "active";
+    int? photoCount { get; set; } = 0;
+    public bool isFirst { get; set; } = true;
+    public int photoIteration = 0;
+    public string showSellerPhoneText = "Pokaż >>";
+    public string phone = "";
+    public string agencyphone = "";
+    public bool showMoreButtonVisible = true;
+    public string showAgencyPhoneText = "Pokaż >>";
+    bool buttonUserPhoneVisible = true;
+    bool buttonAgencyPhoneVisible = true;
+    public IDictionary<string, object>? propertyValues = null;
+    public string description1 = "";
+    public string description2 = "";
+    GetTypeDTO? typeDto = null;
+    List<KeyValuePair<string, object>> allInfo = new();
+    MethodInfo? generic = null;
+    public bool isLoading = true;
+    public int currentPhoto = 0;
+    public bool offerNotFound = false;
+    public bool isAddressAndMapVisible = false;
+    public HomepageOffersDTO[]? offers { get; set; }
+    ChooseContractTypeModalDialog.OfferType thisOfferType;
+    #endregion
+
+    public bool firstTime = true;
+
+    //go to the previous page
+    private async void GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+
+    //get link to sellers profile
+    private string GetUserProfileLink()
+    {
+        return $"/User/{offer.SellerId}";
+    }
+
+    //get link to currently visited offer
+    private string GetThisLink()
+    {
+        return $"/Offer/{offer?.Id}";
+    }
+
+    //get link to offers with same type as currently visited
+    private string GetOverallSearchLink()
+    {
+        string estateType = "";
+        if (offer == null)
+        {
+            return "";
+        }
+        if (offer.EstateType == EnumHelper.GetDescriptionFromEnum(EstateType.APARTMENT))
+        {
+            estateType = "Apartment";
+        }
+        if (offer.EstateType == EnumHelper.GetDescriptionFromEnum(EstateType.HOUSE))
+        {
+            estateType = "House";
+        }
+        if (offer.EstateType == EnumHelper.GetDescriptionFromEnum(EstateType.ROOM))
+        {
+            return $"/Offer/Search/Room/Rent";
+        }
+        if (offer.EstateType == EnumHelper.GetDescriptionFromEnum(EstateType.PLOT))
+        {
+            return $"/Offer/Search/Plot";
+        }
+        if (offer.EstateType == EnumHelper.GetDescriptionFromEnum(EstateType.GARAGE))
+        {
+            estateType = "Garage";
+        }
+        if (offer.EstateType == EnumHelper.GetDescriptionFromEnum(EstateType.HALL))
+        {
+            estateType = "Hall";
+        }
+        if (offer.EstateType == EnumHelper.GetDescriptionFromEnum(EstateType.PREMISES))
+        {
+            estateType = "Premises";
+        }
+        string offerType = offer.OfferType == "Sprzedaż" ? "Sale" : "Rent";
+        return $"/Offer/Search/{estateType}/{offerType}";
+    }
+
+    //get link to offers with same type as currently visited + in the same city
+    private string GetCitySearchLink()
+    {
+        if (offer != null)
+        {
+            return GetOverallSearchLink() + $"?City={offer.City}";
+        }
+        else
+        {
+            return "";
+        }
+    }
+
+    //open currently visible photo from gallery in new page (in fullscreen)
+    public async void FullSizePhoto()
+    {
+        if (offer == null || offer.Photos == null || offer.Photos.Count == 0) return;
+        await JSRuntime.InvokeVoidAsync("show_full_photo");
+    }
+
+    //get link to sellers agency
+    private string GetAgencyProfileLink()
+    {
+        return $"/Agency/{offer?.AgencyId}";
+    }
+
+    //get link to the update page of current offer
+    private void NavigateToEditForm(){
+        NavManager.NavigateTo($"Offer/Update/{offer?.Id}", true);
+    }
+
+    //show or hide second part of description
+    public async void ShowDescription(MouseEventArgs e)
+    {
+        await JSRuntime.InvokeVoidAsync("showDescription");
+    }
+
+    //show the entire phone number of the seller
+    private void showFullSellerPhone()
+    {
+        phone = offer?.SellerPhone != null ? offer.SellerPhone : "";
+        showSellerPhoneText = "&nbsp;";
+        buttonUserPhoneVisible = false;
+    }
+
+    //show the entire phone number of sellers agency
+    private void showFullAgencyPhone()
+    {
+        agencyphone = offer?.AgencyPhone != null ? offer.AgencyPhone : "";
+        showAgencyPhoneText = "&nbsp;";
+        buttonAgencyPhoneVisible = false;
+    }
+
+    //if the description is long -> split it into two sections. Additionally - removes all scripts from HTML code
+    public void SplitDescription()
+    {
+        if (offer == null || offer.Description == null || offer.Description == "")
+        {
+            return;
+        }
+
+        var webDocument = new HtmlDocument();
+        webDocument.LoadHtml(offer.Description);
+        string output = "";
+
+        // Get all Nodes: script
+        HtmlAgilityPack.HtmlNodeCollection Nodes = webDocument.DocumentNode.SelectNodes("//script");
+
+        // Make sure the nodes collection is not Null:
+        if (Nodes != null)
+        {
+            foreach (HtmlNode node in Nodes)
+                node.Remove();
+        }
+        output = webDocument.DocumentNode.OuterHtml;
+
+        var words = output.Split();
+        var lines = new List<string> { words[0] };
+        var lineNum = 0;
+        for (int i = 1; i < words.Length; i++)
+        {
+            if (lines[lineNum].Length + words[i].Length + 1 <= 200)
+                lines[lineNum] += " " + words[i];
+            else
+            {
+                lines.Add(words[i]);
+                lineNum++;
+            }
+        }
+
+        description1 = lines[0] + "\n";
+        if (lines.Count > 0)
+        {
+            for (int i = 1; i < lines.Count(); i++)
+            {
+                description2 += lines[i];
+                description2 += ' ';
+            }
+        }
+
+    }
+
+    //button themes
+    //most buttons on the page
+    MatTheme theme1 = new MatTheme()
+        {
+            Primary = "green",
+            Secondary = "orange"
+        };
+
+    //photo fullscreen button style
+    MatTheme theme2 = new MatTheme()
+        {
+            Primary = "white",
+            Secondary = "orange",
+            Background = "green",
+            OnPrimary = "green",
+            OnSecondary = "green",
+            OnSurface = "green"
+        };
+
+    //get the description of objects property
+    public static List<string> GetAttributeDescription<T>(string propName)
+    {
+        List<string> result = new();
+
+        var prop = typeof(T).GetProperty(propName);
+
+        var att = prop?.GetCustomAttributes(typeof(DescriptionAttribute), true);
+        if (att?.Length > 0)
+        {
+
+            result.Add(((DescriptionAttribute)att[0]).Description);
+        }
+        return result;
+    }
+
+    #region Type difference logic
+    static List<string> AdditionalInfo = new() { "Witryna", "Basen", "Poddasze", "Umeblowanie", "Balkon", "Pomieszczenie użytkowe", "Miejsce parkingowe", "Piwnica", 
+    "Ogród", "Winda", "Taras", "Dwupoziomowy", "Oddzielna kuchnia", "Klimatyzacja", "Parking", "Dojazd asfalt.", "Ogrzewanie", "Winda" };
+    static List<string> ApartmentEquipment = new() { "Pralka", "Meble", "Zmywarka", "Lodówka", "Kuchenka", "Piekarnik", "Telewizor" };
+
+    static List<string> PremisesDesignation = new() { "Usługowy", "Gastronomiczny", "Biurowy", "Przemysłowy", "Handlowy", "Hotelowy"};
+    static List<string> PremisesMedia = new() { "Internet", "Siła", "Telewizja kablowa", "Telefon", "Telefon domowy", "Woda", "Prąd", "Kanalizacja", "Gaz", "Szambo", "Oczyszczalnia ścieków" };
+    static List<string> Safety = new() { "Teren zamknięty", "System alarmowy", "Monitoring", "Domofon", "Rolety anty-włamaniowe", "Drzwi lub okna anty-włamaniowe" };
+
+    static List<string> HallDestination = new() { "magazynowe", "produkcyjne", "biurowe", "handlowe"};
+    static List<string> Driveway = new() { "Dojazd nieutwardzony", "Dojazd utwardzony", "Dojazd asfaltowy"};
+    static List<string> Fencing = new() { "Płot murowany", "Siatka", "Płot metalowy", "Płot drewniany", "Płot betonowy", "Żywopłot", "Inny płot"};
+    static List<string> Heating = new() { "Geotermika", "Olejowe", "Elektryczne", "Miejskie", "Piece kaflowe", "Gazowe", "Węglowe", "Biomasa", "Pompa ciepła", "Kolektor słoneczny", "Kominkowe"};
+    static List<string> Surroundings = new() { "Las", "Jezioro", "Góry", "Morze", "Otwarty teren"};
+
+    List<string> excludeFromDetails = new() {
+        "Rodzaj zabudowy", "Stan oferty", "Obsługa zdalna", "Dodano dnia", "Typ oferty",
+        "Internet", "Telewizja kablowa", "Telefon domowy", "Telefon", "Siła",
+        "Teren zamknięty", "System alarmowy", "Monitoring", "Domofon", "Rolety anty-włamaniowe", "Drzwi lub okna anty-włamaniowe",
+        "Balkon", "Pomieszczenie użytkowe", "Miejsce parkingowe", "Piwnica", "Ogród", "Winda", "Taras", "Dwupoziomowy", "Oddzielna kuchnia", "Klimatyzacja",
+        "Pralka", "Meble", "Zmywarka", "Lodówka", "Kuchenka", "Piekarnik", "Telewizor",
+        "Zdjęcia", "Avatar sprzedawcy", "Numer telefonu", "Sprzedawca", "ID Sprzedawcy", "Telefon agencji", "Logo agencji", "Nazwa agencji", "ID Agencji", "Opis tekstowy", "Cena", "Tytuł ogłoszenia", "ID Ogłoszenia", "Cena za m²",
+        "Usługowy", "Gastronomiczny", "Biurowy", "Przemysłowy", "Handlowy", "Hotelowy", "Kominkowe",
+        "Internet", "Telewizja kablowa",  "Woda", "Prąd", "Kanalizacja", "Gaz", "Szambo", "Oczyszczalnia ścieków", "Basen", "Poddasze",
+        "Witryna", "Parking", "Dojazd asfaltowy", "Ogrzewanie", "Winda", "Umeblowanie", "Klimatyzacja", "magazynowe", "produkcyjne", "biurowe", "handlowe",
+        "Płot murowany", "Siatka", "Płot metalowy", "Płot drewniany", "Płot betonowy", "Żywopłot", "Inny płot", "Dojazd nieutwardzony", "Dojazd utwardzony", "Dojazd asfaltowy",
+        "Geotermika", "Olejowe", "Elektryczne", "Miejskie", "Piece kaflowe", "Gazowe", "Węglowe", "Biomasa", "Pompa ciepła", "Kolektor słoneczny", "inne", 
+        "Las", "Jezioro", "Góry", "Morze", "Otwarty teren", "Dojazd asf.", "Dojazd asfalt."
+
+    };
+
+    #endregion
+
+    List<byte[]>? photosList = new();
+    protected override async Task OnInitializedAsync()
+    {
+        HttpResponseMessage visibilityResult;
+        if(userId==null)
+        {
+            visibilityResult = await Http.GetAsync($"VisibilityController/CheckIfUserAbleToSeeDetails/{offerId}");
+        }
+        else
+        {
+            visibilityResult = await Http.GetAsync($"VisibilityController/CheckIfUserAbleToSeeDetails/{offerId}/{userId}");
+        }
+
+        if(visibilityResult.IsSuccessStatusCode)
+        {
+            isAddressAndMapVisible = true;
+        }
+        else
+        {
+            isAddressAndMapVisible = false;
+        }
+        StateHasChanged();
+        string typeHelp = "";
+        await JSRuntime.InvokeVoidAsync("scroll_to_top");
+        #region GettingOfferOfCertainType
+        var typeresult = await Http.GetAsync($"OfferController/GetType/{int.Parse(offerId)}");
+        if(typeresult.IsSuccessStatusCode)
+        {
+            typeDto = await typeresult.Content.ReadFromJsonAsync<GetTypeDTO?>();
+            offerNotFound = false;
+        }
+        else
+        {
+            isLoading = false;
+            offerNotFound = true;
+            return;
+        }
+
+
+        if (typeDto == null || typeDto.type == null) {}
+        else
+        {
+            offer = await _apiLogic.GetOffer(int.Parse(offerId), typeDto.type);
+            if (typeDto.type.Contains(EnumHelper.GetDescriptionFromEnum(EstateType.ROOM)))
+            {
+                thisOfferType = ChooseContractTypeModalDialog.OfferType.RoomRent;
+                typeHelp = "Room";
+            }
+            else if (typeDto.type.Contains(EnumHelper.GetDescriptionFromEnum(EstateType.PLOT)))
+            {
+                if(offer.OfferType == "Sprzedaż")
+                {
+                    thisOfferType = ChooseContractTypeModalDialog.OfferType.PlotSale;
+                    typeHelp = "PlotSale";
+                }
+                else
+                {
+                    thisOfferType = ChooseContractTypeModalDialog.OfferType.PlotRent;
+                    typeHelp = "PlotRent";
+                }
+            }
+            else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.HOUSE) + EnumHelper.GetDescriptionFromEnum(OfferType.RENT))
+            {
+                thisOfferType = ChooseContractTypeModalDialog.OfferType.HouseRent;
+                typeHelp = "HouseRent";
+            }
+            else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.HOUSE) + EnumHelper.GetDescriptionFromEnum(OfferType.SALE))
+            {
+                thisOfferType = ChooseContractTypeModalDialog.OfferType.HouseSale;
+                typeHelp = "HouseSale";
+            }
+            else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.HALL) + EnumHelper.GetDescriptionFromEnum(OfferType.RENT))
+            {
+                thisOfferType = ChooseContractTypeModalDialog.OfferType.HallRent;
+                typeHelp = "HallRent";
+            }
+            else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.HALL) + EnumHelper.GetDescriptionFromEnum(OfferType.SALE))
+            {
+                thisOfferType = ChooseContractTypeModalDialog.OfferType.HallSale;
+                typeHelp = "HallSale";
+            }
+            else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.PREMISES) + EnumHelper.GetDescriptionFromEnum(OfferType.RENT))
+            {
+                thisOfferType = ChooseContractTypeModalDialog.OfferType.PremisesRent;
+                typeHelp = "PremRent";
+            }
+            else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.PREMISES) + EnumHelper.GetDescriptionFromEnum(OfferType.SALE))
+            {
+                thisOfferType = ChooseContractTypeModalDialog.OfferType.PremisesSale;
+                typeHelp = "PremSale";
+            }
+            else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.GARAGE) + EnumHelper.GetDescriptionFromEnum(OfferType.RENT))
+            {
+                thisOfferType = ChooseContractTypeModalDialog.OfferType.GarageRent;
+                typeHelp = "GarRent";
+            }
+            else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.GARAGE) + EnumHelper.GetDescriptionFromEnum(OfferType.SALE))
+            {
+                thisOfferType = ChooseContractTypeModalDialog.OfferType.GarageSale;
+                typeHelp = "GarSale";
+            }
+            else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.APARTMENT) + EnumHelper.GetDescriptionFromEnum(OfferType.RENT))
+            {
+                thisOfferType = ChooseContractTypeModalDialog.OfferType.ApartmentRent;
+                typeHelp = "ApRent";
+            }
+            else if (typeDto.type == EnumHelper.GetDescriptionFromEnum(EstateType.APARTMENT) + EnumHelper.GetDescriptionFromEnum(OfferType.SALE))
+            {
+                thisOfferType = ChooseContractTypeModalDialog.OfferType.ApartmentSale;
+                typeHelp = "ApSale";
+            }
+            else
+            {
+                thisOfferType = ChooseContractTypeModalDialog.OfferType.Unknown;
+            }
+        }
+        
+        #endregion
+
+        //get ALL offer information and group some of them
+        if (offer != null)
+        {
+            propertyValues = ((object)offer)
+                                     .GetType()
+                                     .GetProperties().OrderByDescending(prop => prop.GetCustomAttributes(typeof(DisplayAttribute), true)
+                                       .Cast<DisplayAttribute>()
+                                       .Select(attr => attr.Order)
+                                       .FirstOrDefault())
+                                     .ToDictionary(prop => prop.Name, prop => prop.GetValue(offer));
+
+            bool getInfo = true;
+            bool getEq = true;
+            bool getSafety = true;
+            bool getMedia = true;
+            bool getDest = true;
+            bool getDrive = true;
+            bool getSurroundings = true;
+            bool getFence = true;
+            bool getHeat = true;
+
+            Type type = ((object)offer).GetType();
+            MethodInfo method = typeof(DescriptionHelper).GetMethod(nameof(DescriptionHelper.GetAttributeDescription));
+            generic = method.MakeGenericMethod(type);
+
+            if (generic != null && propertyValues != null)
+            {
+                foreach (var pair in propertyValues) // foreach field in the dto
+                {
+                    var result = generic.Invoke(null, new object[] { pair.Key });
+
+                    if (result != null)
+                    {
+                        foreach (var item in (List<string>)result)
+                        {
+                            if (!excludeFromDetails.Contains(item))
+                            {
+                                string pairValueTrueOrFalse = "";
+                                if (item == "Czynsz")
+                                {
+                                    pairValueTrueOrFalse = pair.Value?.ToString() + "zł / miesiąc";
+                                }
+                                else if (pair.Value?.ToString() == "True")
+                                {
+                                    pairValueTrueOrFalse = "Tak";
+                                }
+                                else if (pair.Value?.ToString() == "False")
+                                {
+                                    pairValueTrueOrFalse = "Nie";
+                                }
+                                else if (pair.Value?.ToString() == "AGENCY")
+                                {
+                                    pairValueTrueOrFalse = "Agent nieruchomości";
+                                }
+                                else if (pair.Value?.ToString() == "PRIVATE")
+                                {
+                                    pairValueTrueOrFalse = "Osoba prywatna";
+                                }
+                                else if(item == "Adres" && !isAddressAndMapVisible)
+                                {
+                                    pairValueTrueOrFalse = "Niedostępny";
+                                }
+                                else
+                                {
+                                    pairValueTrueOrFalse = (pair.Value?.ToString() != null ? pair.Value?.ToString() : "Brak danych");
+                                }
+                                KeyValuePair<string, object> temp = new KeyValuePair<string, object>(item + ": ", pairValueTrueOrFalse); 
+                                allInfo.Insert(0, temp);
+                            }
+                            else if (AdditionalInfo.Contains(item)&& getInfo)
+                            {
+                                KeyValuePair<string, object> temp = new KeyValuePair<string, object>("Informacje dodatkowe", offer.GetAdditionalInfo());
+                                allInfo.Insert(0, temp);
+                                getInfo = false;
+                            }
+                            else if (PremisesMedia.Contains(item) && getMedia)
+                            {
+                                await JSRuntime.InvokeVoidAsync("console.log", $"Item: {item}");
+                                KeyValuePair<string, object> temp = new KeyValuePair<string, object>("Media", offer.GetMedia());
+                                allInfo.Insert(0, temp);
+                                getMedia = false;
+                            }
+                            else if (ApartmentEquipment.Contains(item) && getEq)
+                            {
+                                KeyValuePair<string, object> temp = new KeyValuePair<string, object>("Wyposażenie", offer.GetEquipment());
+                                allInfo.Insert(0, temp);
+                                getEq = false;
+                            }
+                            else if ((PremisesDesignation.Contains(item) || HallDestination.Contains(item)) && getDest)
+                            {
+                                KeyValuePair<string, object> temp = new KeyValuePair<string, object>("Przeznaczenie", offer.GetDesignation());
+                                allInfo.Insert(0, temp);
+                                getDest = false;
+                            } 
+                            else if (Driveway.Contains(item) && getDrive)
+                            {
+                                KeyValuePair<string, object> temp = new KeyValuePair<string, object>("Dojazd", offer.GetDriveway());
+                                allInfo.Insert(0, temp);
+                                getDrive = false;
+                            } 
+                            else if (Fencing.Contains(item) && getFence)
+                            {
+                                KeyValuePair<string, object> temp = new KeyValuePair<string, object>("Ogrodzenie", offer.GetFencing());
+                                allInfo.Insert(0, temp);
+                                getFence = false;
+                            } 
+                            else if (Surroundings.Contains(item) && getSurroundings)
+                            {
+                                KeyValuePair<string, object> temp = new KeyValuePair<string, object>("Okolica", offer.GetSurroundings());
+                                allInfo.Insert(0, temp);
+                                getSurroundings = false;
+                            } 
+                            else if (Heating.Contains(item) && getHeat)
+                            {
+                                KeyValuePair<string, object> temp = new KeyValuePair<string, object>("Ogrzewanie", offer.GetHeating());
+                                allInfo.Insert(0, temp);
+                                getHeat = false;
+                            } 
+                            else if (Safety.Contains(item) && getSafety)
+                            {
+                                KeyValuePair<string, object> temp = new KeyValuePair<string, object>("Zabezpieczenia", offer.GetSafety());
+                                allInfo.Insert(0, temp);
+                                getSafety = false;
+                            }
+                        }
+                    }
+                }
+            }
+            photoCount = offer.Photos?.Count;
+            photosList = offer.Photos;
+            isLoadingPhotos = false;
+        }
+
+        //split phone numbers to allow showing them on button click
+        string temp_phone = !String.IsNullOrEmpty(offer.SellerPhone) ? offer.SellerPhone : "";
+        string temp_agency_phone = !String.IsNullOrEmpty(offer.AgencyPhone) ? offer.AgencyPhone : "";
+        phone = new string(temp_phone.Take(3).ToArray()) + "...";
+        agencyphone = new string(temp_agency_phone.Take(3).ToArray()) + "...";
+
+        //if the description is long - split it to two sections. The second is available after button click
+        SplitDescription();
+
+        //other offers
+        offers = await Http.GetFromJsonAsync<HomepageOffersDTO[]>($"OfferController/GetSimilar/{int.Parse(offerId)}");
+
+
+
+        //map
+        if (offer != null && isAddressAndMapVisible)
+        {
+            string adres = $"{offer.City} województwo {offer.Voivodeship} {offer.Address}";
+            GetCoordsViewModel vm = new() { address = adres };
+            string modelStr = System.Text.Json.JsonSerializer.Serialize(vm);
+            var content = new StringContent(modelStr, Encoding.UTF8, "application/json");
+            var response = await Http.PostAsync("OfferController/GetCoordinates", content);
+            var coord = await response.Content.ReadFromJsonAsync<Coordinates?>();
+
+            if (coord != null)
+            {
+                //if the address has a number in the one of two last symbols - the address is precise - draw a pin
+                if (char.IsDigit(offer.Address[offer.Address.Length - 2]) || char.IsDigit(offer.Address[offer.Address.Length - 1]))
+                {
+                    await JSRuntime.InvokeAsync<Task>("loadPreciseMap", new object[] { coord.Longitude, coord.Latitude });
+                }
+                else //draw a circle around a 150m area
+                {
+                    Polygon polygon = new();
+                    Inżynierka.Shared.Map.Models.Location loc = new(coord.Longitude.Value, coord.Latitude.Value);
+                    List<Inżynierka.Shared.Map.Models.Location[]> rings = new();
+                    rings.Add(MapCircle.DrawMapCircle(loc, 150).ToArray());
+                    polygon.rings = rings.ToArray();
+
+                    string jsonPolygon = JsonConvert.SerializeObject(polygon);
+                    await JSRuntime.InvokeAsync<Task>("loadCircleMap", new object[] { coord.Longitude, coord.Latitude, jsonPolygon });
+                }
+            }
+        }
+
+        isLoading = false;
+        StateHasChanged();
+        CheckIfMyFavourite(userId);
+        await base.OnInitializedAsync();
+    }
+
+    //in most-important-info check if dto has a property with given name
+    public bool HasProperty(dynamic item, string propertyName)
+    {
+        if (item == null)
+        {
+            return false;
+        }
+
+        if (item is ExpandoObject eo)
+        {
+            return (eo as IDictionary<string, object>).ContainsKey(propertyName);
+        }
+        else
+        {
+            var prop = item.GetType().GetProperty(propertyName);
+            if (prop == null)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+    }
+    public bool isLoadingPhotos = true;
+    //refresh variable data on page offer change
+    protected override async Task OnParametersSetAsync()
+    {
+        allInfo.Clear();
+        if(photosList!=null) 
+        {
+            photosList.Clear();
+        }
+
+        isAddressAndMapVisible = true;
+        isLoadingPhotos = true;
+        description1 = "";
+        description2 = "";
+        await OnInitializedAsync();
+    }
+
+    #region Favourite
+    private int? userId = null;
+    private bool isFav = false;
+
+    private async void SetUserId(string id)
+    {
+        userId = Int32.Parse(id);
+    }
+
+    private async void AddToFavourites()
+    {
+        await Http.GetAsync($"OfferController/AddToFavourites/{int.Parse(offerId)}");
+        isFav = true;
+        StateHasChanged();
+    }
+
+    private async void RemoveFromFavourites()
+    {
+        await Http.GetAsync($"OfferController/RemoveFromFavourites/{int.Parse(offerId)}");
+        isFav = false;
+        StateHasChanged();
+    }
+
+
+    private async void CheckIfMyFavourite(int? userId)
+    {
+        if (userId == null)
+            return;
+
+        isFav = await Http.GetFromJsonAsync<bool>($"OfferController/CheckIfFavourite/{userId.Value}/{int.Parse(offerId)}");
+    }
+    #endregion
+
+    //modals
+    #region DeleteModal
+
+    public bool isDeleteDialogOpen { get; set; }
+
+    private void OpenDeleteDialog()
+    {
+        isDeleteDialogOpen = true;
+        StateHasChanged();
+    }
+    private async void OnDeleteDialogClose(bool accepted)
+    {
+        if (accepted)
+        {
+            await Http.GetAsync($"OfferController/Delete/{offerId}");
+            NavManager.NavigateTo("/homepage");
+        }
+
+        isDeleteDialogOpen = false;
+        StateHasChanged();
+    }
+
+    #endregion
+    #region ContractModal
+
+    public bool isContractDialogOpen { get; set; }
+
+    private void OpenContractDialog()
+    {
+        isContractDialogOpen = true;
+        StateHasChanged();
+    }
+    private async void OnContractDialogClose(ContractTypes? type)
+    {
+        if(type!=null)
+        {
+            string typeStr = type.ToString();
+            var response = await Http.GetAsync($"OfferController/GenerateContract/{typeStr}/{offerId}/");
+            if(response.IsSuccessStatusCode)
+            {
+                var stream = response.Content.ReadAsStream();
+                using var streamRef = new DotNetStreamReference(stream: stream);
+                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", EnumHelper.GetDescriptionFromEnum(type) + $"_{offerId}.pdf",streamRef);
+            }
+        }
+
+        isContractDialogOpen = false;
+        StateHasChanged();
+    }
+    #endregion
+
+    #region Visibility Modal
+
+    public bool isVisibilityModalOpen = false;
+    public async void ShowVisibilityModal()
+    {
+        isVisibilityModalOpen = true;
+    }
+
+    private async void OnVisibilityModalClose(bool? reply)
+    {
+        isVisibilityModalOpen = false;
+        StateHasChanged();
+    }
+
+    #endregion
+}

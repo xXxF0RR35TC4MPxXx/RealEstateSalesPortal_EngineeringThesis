@@ -1,0 +1,329 @@
+﻿@using Inżynierka.Client.Handlers;
+@using Inżynierka.Client.Logics;
+@using Inżynierka.Shared.DTOs.Offers.Read
+@inject HttpClient Http
+@inject IJSRuntime Js
+@inject AuthenticationStateProvider _authStateProvider
+@inject NavigationManager NavManager
+@inject IApiLogic _apiLogic
+@inject IMatToaster Toaster
+
+<BlazorStyled.Styled>
+    .singleAgent
+    {
+        border-radius: 15px; 
+        box-shadow: rgb(156, 156, 158) 0px 0px 20px -8px;
+        width:100%;
+        height: 15vh;
+        padding: 15px;
+    }
+    .removeButton
+    {
+        height:100% !important;
+    width: 9% !important;
+    position:absolute !important;
+    top:0;
+    right:0;
+    }
+    .agent-photo-thumbnail
+    {
+        float: left;
+        width: 10%;
+        margin-right: 15px;
+        height: 100%;
+        box-shadow: rgb(156, 156, 158) 0px 0px 20px -8px;
+        border-radius: 8px;
+    }
+
+
+    .offer-right-side 
+    {
+        position: relative;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .agent-name
+    {
+        text-decoration:none;
+        color: black;
+        font-size: 21px;
+        max-width:90%;
+        font-family: "Open Sans", sans-serif;
+        font-weight: bold;
+
+    }
+
+    .agent-email
+    {
+    font-weight: bold;
+    text-decoration:none;
+    color: black;
+    font-family: "Open Sans", sans-serif;
+    font-size: 21px;
+    max-width:90%;
+    position: absolute;
+
+    
+    }
+
+    .agent-phone
+    {
+    position: absolute;
+    top: 0;
+    text-decoration:none;
+    color: black;
+    font-family: "Open Sans", sans-serif;
+    font-size: 21px;
+    font-weight: bold;
+    max-width:90%;
+    }
+
+    .agent-actives
+    {
+    text-decoration:none;
+    font-weight: bold;
+    color: black;
+    font-family: "Open Sans", sans-serif;
+    font-size: 21px;
+    max-width:90%;
+    }
+
+    .extra-info
+    {
+        text-decoration:none;
+        color: gray;
+        font-family: "Open Sans", sans-serif;
+        position:absolute;
+        top: 38%;
+    }
+
+    a
+    {
+        text-decoration:none !important;
+    }
+
+
+    .agent-photo
+    {
+        width:100%;
+        height:100%;
+        object-fit: cover;
+        overflow: hidden;
+        border-radius: 8px;
+    }
+
+</BlazorStyled.Styled>
+<MatThemeProvider Theme="@theme">
+<div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+
+<div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+        <div class="singleAgent">
+        <NavLink href="@link">
+        @{
+            <div class="agent-photo-thumbnail">
+                @if (Avatar != null)
+                {
+                    <img src='@Avatar' class="agent-photo"/>
+                }
+                else
+                {
+                    <img src=./images/avatar_placeholder.jpg class="agent-photo" />
+                }
+            </div>
+                    
+        }
+        </NavLink>
+        <div class="offer-right-side">
+            <NavLink href="@link">
+                <p class="agent-name">@FullName</p>
+                    <p class="agent-email" style="right: @rightPercentage">Email: @Email</p>
+                    <p class="agent-phone" style="right: @rightPercentage">Telefon: @Phone</p>
+                <p class="agent-actives">Aktywnych ofert: @ActiveOffers</p>
+            </NavLink>
+                @{
+                    if(amITheOwner)
+                    {
+                        <MatThemeProvider Theme=@removeTheme>
+                            <MatButton Disabled=@deleteDisabled class="removeButton" @onclick="()=>OpenDeleteDialog()" Unelevated="true">Usuń agenta</MatButton>
+                        </MatThemeProvider>
+                    }
+            }
+        </div> 
+    </div>
+</div>
+<div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+</MatThemeProvider>
+
+@if (isRemoveDialogOpen)
+{
+    <RemoveConfirmationModalDialog 
+        DialogType="RemoveConfirmationModalDialog.ModalDialogType.DeleteCancel"
+        Title="Potwierdzenie usunięcia"
+            Text="Usunięcie agenta z agencji spowoduje przeniesienie wszystkich jego ofert i wpisów w terminarzu do właściciela agencji! Czy na pewno chcesz usunąć tego agenta?"
+        OnClose="@OnDeleteDialogClose">
+    </RemoveConfirmationModalDialog>
+}
+@code {
+    public bool isRemoveDialogOpen = false;
+    private void OpenDeleteDialog()
+    {
+        isRemoveDialogOpen = true;
+        StateHasChanged();
+    }
+
+    private async void OnDeleteDialogClose(bool accepted)
+    {
+        if (accepted)
+        {
+            var response = await _apiLogic.RemoveAgentFromAgency(Id);
+            if (response.Item1 == false)
+            {
+                Show(MatToastType.Danger, $"{response.Item2}", "Błąd", "");
+            }
+            else
+            {
+                isRemoveDialogOpen = false;
+                NavManager.NavigateTo($"/Agency/{AgencyId}/Agents", true);
+            }
+        }
+        else
+        {
+            isRemoveDialogOpen = false;
+            StateHasChanged();
+        }
+    }
+
+    public bool amITheOwner = false;
+    public string link = "";
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int AgencyId { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int? MyId { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int? ActiveOffers { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? FullName { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Email { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Phone { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Avatar { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _showProgressBar = Toaster.Configuration.ShowProgressBar;
+        _showCloseButton = Toaster.Configuration.ShowCloseButton;
+        _maximumOpacity = Toaster.Configuration.MaximumOpacity.ToString();
+        _showTransitionDuration = Toaster.Configuration.ShowTransitionDuration.ToString();
+        _visibleStateDuration = Toaster.Configuration.VisibleStateDuration.ToString();
+        _hideTransitionDuration = Toaster.Configuration.HideTransitionDuration.ToString();
+        _requireInteraction = Toaster.Configuration.RequireInteraction;
+
+        await base.OnInitializedAsync();
+    }
+
+    public bool deleteDisabled = false;
+    public string rightPercentage = "0";
+    protected override async Task OnParametersSetAsync()
+    {
+        var result = await Http.GetAsync($"/AgencyController/CheckIfOwner/{Id}/{AgencyId}");
+        if (result.IsSuccessStatusCode)
+        {
+            deleteDisabled = true;
+            FullName = $"🌟 {FullName}";
+        }
+
+        //await Js.InvokeVoidAsync("console.log", $"MyId: {MyId} / AgencyId: {AgencyId}");
+        var CheckIfImTheOwner = await Http.GetAsync($"/AgencyController/CheckIfOwner/{MyId}/{AgencyId}");
+        if (CheckIfImTheOwner.IsSuccessStatusCode)
+        {
+            amITheOwner = true;
+            rightPercentage = "12%";
+        }
+        else
+        {
+            amITheOwner = false;
+            rightPercentage = "0";
+        }
+
+        StateHasChanged();
+        link = $"User/{Id}";
+    }
+
+    MatTheme removeTheme = new MatTheme()
+        {
+            Primary = "#e03d3d",
+            Secondary = "#e03d3d"
+        };
+
+    MatTheme theme = new MatTheme()
+    {
+        Primary = "green",
+        Secondary = "green"
+    };
+
+    #region Toaster
+    private bool _showProgressBar;
+    private bool _showCloseButton;
+    private bool _actionOnClick;
+    private string _maximumOpacity;
+
+    private string _showTransitionDuration;
+    private string _visibleStateDuration;
+    private string _hideTransitionDuration;
+    private bool _requireInteraction;
+    public string _maxDisplayedToasts
+    {
+        get { return Toaster.Configuration.MaxDisplayedToasts.ToString(); }
+        set { Toaster.Configuration.MaxDisplayedToasts = Convert.ToInt32(value); }
+    }
+    private string _toastPosition
+    {
+        get { return Toaster.Configuration.Position.ToString(); }
+        set { Toaster.Configuration.Position = (MatToastPosition)Enum.Parse(typeof(MatToastPosition), value); }
+    }
+
+    public void Show(MatToastType type, string message, string title, string icon = "")
+    {
+        Toaster.Add(message, type, title, icon, config =>
+        {
+            config.ShowCloseButton = _showCloseButton;
+            config.ShowProgressBar = _showProgressBar;
+            config.MaximumOpacity = Convert.ToInt32(_maximumOpacity);
+
+            config.ShowTransitionDuration = Convert.ToInt32(_showTransitionDuration);
+            config.VisibleStateDuration = Convert.ToInt32(_visibleStateDuration);
+            config.HideTransitionDuration = Convert.ToInt32(_hideTransitionDuration);
+
+            config.RequireInteraction = _requireInteraction;
+
+            if (_actionOnClick)
+            {
+                config.Onclick = toast =>
+                {
+                    return Task.CompletedTask;
+                };
+            }
+        });
+    }
+    #endregion
+}

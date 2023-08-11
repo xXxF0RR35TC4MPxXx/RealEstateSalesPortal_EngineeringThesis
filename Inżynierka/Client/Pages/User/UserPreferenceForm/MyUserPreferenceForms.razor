@@ -1,0 +1,92 @@
+﻿@page "/User/MyUserPreferenceForms"
+<PageTitle>Formularze klientów - BuyDom.pl</PageTitle>
+
+@using Inżynierka.Client.Handlers;
+@using Inżynierka.Client.Logics;
+@using Inżynierka.Shared.DTOs.UserPreferenceForm;
+@inject NavigationManager NavManager
+@inject IApiLogic _apiLogic
+<BlazorStyled.Styled>
+    .topInfo
+    {
+        font-size: 24px;
+        font-family: "Open Sans", sans-serif;
+        font-weight: bold;
+    }
+</BlazorStyled.Styled>
+
+<SpinLoader IsLoading="isLoading">
+    <LoadingTemplate>
+        <LoadingScreen Text="Trwa wczytywanie formularzy..."/>
+    </LoadingTemplate>
+    <ContentTemplate>
+        <AuthorizeView>
+            <NotAuthorized>
+                @{
+                    if (context.User == null || context.User.Identity == null || !context.User.Identity.IsAuthenticated)
+                    {
+                        NavManager.NavigateTo("/Auth/SignIn");
+                    }
+                }
+            </NotAuthorized>
+            <Authorized>
+                @{SetUserId(context.User.Claims.FirstOrDefault(x => x.Type == "UserId")?.Value);}
+                <div class="mat-layout-grid">
+                    <div class="mat-layout-grid-inner">
+
+                        <UserPageInfo viewerId=@userId.ToString() userId="@userId.ToString()" />
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+                            @{
+                                if(forms!=null)
+                                {
+                                    <p class="topInfo">Przypisano Ci @forms.Count @PolishConjugationHelper.Requests(forms.Count) o znalezienie ofert!</p>
+                                    
+                                }
+                                else
+                                {
+                                    <p class="topInfo">Nie został Ci przekazany jeszcze żaden formularz preferencji klienta.</p>
+                                }
+                            }
+                        </div>
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+                            @{
+                                if (forms != null)
+                                {
+                                    foreach (var form in forms)
+                                    {
+                                        <SinglePreferenceFormThumbnail Id=@form.Id City=@form.City OfferType=@form.OfferType EstateType=@form.EstateType ClientEmail=@form.ClientEmail />
+                                    }
+                                }
+                            }
+                            
+                        </div>
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+                    </div>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </ContentTemplate>
+</SpinLoader>
+
+
+@code {
+    public bool isLoading = true;
+    public int? userId;
+    private async void SetUserId(string id)
+    {
+        userId = Int32.Parse(id);
+    }
+
+    IList<UserPreferenceFormThumbnailDTO>? forms;
+
+    protected override async Task OnInitializedAsync()
+    {
+        forms = await _apiLogic.GetForms();
+        isLoading = false;
+        await base.OnInitializedAsync();
+    }
+}

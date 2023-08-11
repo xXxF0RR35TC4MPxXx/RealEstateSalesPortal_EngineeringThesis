@@ -1,0 +1,12 @@
+﻿@page "/index.html"
+
+@inject NavigationManager NavManager
+
+<h1>Index Page</h1>
+
+@code {
+    protected override void OnInitialized()
+    {
+        NavManager.NavigateTo("/homepage");
+    }
+}

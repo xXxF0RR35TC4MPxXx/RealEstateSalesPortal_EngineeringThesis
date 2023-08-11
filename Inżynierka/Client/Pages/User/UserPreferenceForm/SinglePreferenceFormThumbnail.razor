@@ -1,0 +1,141 @@
+﻿@using Inżynierka_Common.Helpers;
+@using Inżynierka_Common.Enums;
+@using System.Net.Mail;
+<BlazorStyled.Styled>
+    .singleForm
+    {
+        border-radius: 15px;
+        box-shadow: rgb(156, 156, 158) 0px 0px 20px -8px;
+        width:100%;
+        height: 15vh;
+        
+    }
+
+    .formPartText
+    {
+    width: 100%;
+    text-align: center;
+    margin-top: 14%;
+    transform: translateY(-50%);
+    word-break: break-word;
+    font-family: Open Sans, sans-serif;
+    font-weight: 400;
+    }
+
+    .shorterHeight
+    {
+        min-height: 90px;
+    }
+</BlazorStyled.Styled>
+
+<div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+<div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">  
+    
+        <div class="singleForm">
+            <div class="mat-layout-grid shorterHeight">
+            <NavLink style="text-decoration:none; color: black; font-size: 22px;" href="@link">
+                <div class="mat-layout-grid-inner shorterHeight">
+                    
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3 shorterHeight ">
+                        <p class="formPartText">Klient @username poszukuje:</p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3 shorterHeight">
+                        <p class="formPartText"><i class="fa-solid @offerIconClass" /> @EstateText</p>
+                    </div>
+                    @if (OfferType != null)
+                    {
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3 shorterHeight">
+                            <p class="formPartText">na @OfferType</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3 shorterHeight">
+                            <p class="formPartText">na sprzedaż lub wynajem</p>
+                        </div>
+                    }
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3 shorterHeight">
+                        <p class="formPartText">w: @City</p>
+                    </div>
+                    
+                </div>
+            </NavLink>
+            </div>
+        </div>
+</div>
+<div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+
+@code {
+    #region Params
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? City  { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? OfferType { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string EstateType { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? ClientEmail { get; set; }
+    #endregion
+
+    public string link = "";
+    public string offerIconClass = "fa-house";
+    public string EstateText = "";
+    public string username = "";
+    protected override async Task OnInitializedAsync()
+    {
+        if(ClientEmail!=null)
+        {
+            MailAddress addr = new MailAddress(ClientEmail);
+            username = addr.User;
+        }
+        
+        link = $"/User/MyUserPreferenceForms/{Id}";
+        if(EstateType==EnumHelper.GetDescriptionFromEnum(Inżynierka_Common.Enums.EstateType.APARTMENT))
+        {
+            EstateText = "mieszkania";
+            offerIconClass = "fa-building";
+        }
+        else if (EstateType == EnumHelper.GetDescriptionFromEnum(Inżynierka_Common.Enums.EstateType.HOUSE))
+        {
+            EstateText = "domu";
+            offerIconClass = "fa-house";
+        }
+        else if (EstateType == EnumHelper.GetDescriptionFromEnum(Inżynierka_Common.Enums.EstateType.ROOM))
+        {
+            EstateText = "pokoju";
+            offerIconClass = "fa-couch";
+        }
+        else if (EstateType == EnumHelper.GetDescriptionFromEnum(Inżynierka_Common.Enums.EstateType.PLOT))
+        {
+            EstateText = "działki";
+            offerIconClass = "fa-tree";
+        }
+        else if (EstateType == EnumHelper.GetDescriptionFromEnum(Inżynierka_Common.Enums.EstateType.PREMISES))
+        {
+            EstateText = "lokalu użytkowego";
+            offerIconClass = "fa-store";
+        }
+        else if (EstateType == EnumHelper.GetDescriptionFromEnum(Inżynierka_Common.Enums.EstateType.HALL))
+        {
+            EstateText = "hali";
+            offerIconClass = "fa-warehouse";
+        }
+        else if (EstateType == EnumHelper.GetDescriptionFromEnum(Inżynierka_Common.Enums.EstateType.GARAGE))
+        {
+            EstateText = "garażu";
+            offerIconClass = "fa-car-tunnel";
+        }
+        await base.OnInitializedAsync();
+    }
+}

@@ -1,0 +1,249 @@
+﻿@page "/Auth/Register"
+<PageTitle>Rejestracja - BuyDom.pl</PageTitle>
+@using Blazored.LocalStorage
+@using Inżynierka.Client.Logics
+@using Inżynierka.Shared.ViewModels.User
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Text.RegularExpressions
+@using System.Net.Mail
+@inject IApiLogic _apiLogic
+@inject NavigationManager _navigationManager
+@inject ILocalStorageService _localStorageService;
+@inject IJSRuntime JSRuntime
+@inject IMatToaster Toaster
+
+<BlazorStyled.Styled>
+    .content{
+    width: 450px;
+    height: auto;
+    margin: 0 auto;
+    padding: 30px;
+    padding-left:0px;
+    }
+    .nav-pills{
+    width: 450px;
+    }
+    .nav-item{
+    width: 50%;
+    }
+    .nav-pills .nav-link{
+    font-weight: bold;
+    padding-top: 13px;
+    text-align: center;
+    background: #343436;
+    color: #fff;
+    border-radius: 30px;
+    height: 100px;
+    }
+    .nav-pills .nav-link.active{
+    background: #fff;
+    color: #000;
+    }
+    .tab-content{
+    position: absolute;
+    width: 450px;
+    height: auto;
+    margin-top: -50px;
+    background: #fff;
+    color: #000;
+    border-radius: 30px;
+    z-index: 69;
+    box-shadow: 0px 10px 10px rgba(0, 0, 0, 0.4);
+    padding: 30px;
+    margin-bottom: 50px;
+    }
+
+
+    .myBtn{
+    display: inline-block;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    text-align: center;
+    text-decoration: none;
+    vertical-align: middle;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    background-color: lightskyblue;
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: .25rem;
+    color: white;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    }
+
+    .myBtn:hover {
+    color: #0a58ca;
+    }
+
+    .tab-content button{
+    border-radius: 15px;
+    width: 150px;
+    margin: 20 auto;
+    margin-top: 15px;
+    float: right;
+    }
+</BlazorStyled.Styled>
+<AuthorizeView>
+    <Authorized>
+        @{
+            _navigationManager.NavigateTo("/homepage");
+        }
+    </Authorized>
+</AuthorizeView>
+<div class="content">
+    <!-- Nav pills -->
+    <ul class="nav nav-pills" role="tablist">
+        <li class="nav-item" >
+            <NavLink class="nav-link" style="border-radius: 30px; background-color: lightskyblue;" href="/Auth/SignIn">Logowanie</NavLink>
+        </li>
+        <li class="nav-item" style="padding-top: 10px; ">
+            <NavLink class="nav-link" style="border-radius: 30px;" href="/Auth/Register">Rejestracja</NavLink>
+        </li>
+    </ul>
+
+    <!-- Tab panes -->
+    <div class="tab-content">
+        <div id="regis" class="container tab-pane active">
+            <EditForm Model="@registerModel" OnValidSubmit="@UserRegister">
+                <DataAnnotationsValidator/>
+                <div class="form-group">
+                    <label>Adres email</label><ValidationMessage For="@(() => registerModel.Email)" />
+                    <InputText @bind-Value="registerModel.Email" type="email" class="form-control" placeholder="Email" />
+                    &nbsp;
+                </div>
+                <div class="form-group">
+                    <label>Imię</label><ValidationMessage For="@(() => registerModel.FirstName)" />
+                    <InputText @bind-Value="registerModel.FirstName" type="text" class="form-control" placeholder="Imię"/>
+                    &nbsp;
+                </div>
+                <div class="form-group">
+                    <label>Nazwisko</label><ValidationMessage For="@(() => registerModel.LastName)" />
+                    <InputText @bind-Value="registerModel.LastName" type="text" class="form-control" placeholder="Nazwisko"/>
+                    &nbsp;
+                </div>
+                <div class="form-group">
+                    <label>Miasto</label><ValidationMessage For="@(() => registerModel.City)" />
+                    <InputText @bind-Value="registerModel.City" type="text" class="form-control" placeholder="Miasto"/>
+                    &nbsp;
+                </div>
+                <div class="form-group">
+                    <label>Adres</label>
+                    <InputText @bind-Value="registerModel.Street" type="text" class="form-control" placeholder="Adres" />
+                </div>&nbsp;
+                <div class="form-group">
+                    <label>Numer telefonu</label><ValidationMessage For="@(() => registerModel.PhoneNumber)" />
+                    <InputText @bind-Value="registerModel.PhoneNumber" type="tel" class="form-control" pattern="[0-9]{9}" placeholder="000000000" />
+                    &nbsp;
+                </div>
+                
+                <div class="form-group">
+                    <label>Kod pocztowy</label><ValidationMessage For="@(() => registerModel.PostalCode)" />
+                    <InputText @bind-Value="registerModel.PostalCode" type="text" class="form-control" placeholder="00-000"/>
+                    &nbsp;
+                </div>
+                <div class="form-group">
+                    <label>Hasło</label> <ValidationMessage For="@(() => registerModel.Password)" />
+                    <InputText @bind-Value="registerModel.Password" type="password" class="form-control" placeholder="Hasło"/>
+                </div>&nbsp;
+                <div class="form-group">
+                    <label>Powtórz hasło</label> <ValidationMessage For="@(() => registerModel.SecondPassword)" />
+                    <InputText @bind-Value="registerModel.SecondPassword" type="password" class="form-control" placeholder="Powtórz Hasło"/>
+                    &nbsp;
+                </div>
+                <div class="form-group">
+                    <label>Kod agencji</label><ValidationMessage For="@(() => registerModel.AgencyInvitationGuid)" />
+                    <InputText @bind-Value="registerModel.AgencyInvitationGuid" type="text" class="form-control" />
+                    &nbsp;
+                </div>
+                <button type="submit" class="myBtn">@text<Circle Center="true" Color="white" Size="@size"></Circle></button>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+
+
+
+    private NewUserViewModel registerModel = new NewUserViewModel();
+    private string size = "0px";
+    private string text = "Zarejestruj się";
+
+    private async Task UserRegister()
+    {
+        size = "20px";
+        text = "";
+        var message = await _apiLogic.RegisterAsync(registerModel);
+        if (message == "Success")
+        {
+            _navigationManager.NavigateTo("/Auth/ConfirmEmailInfo", true);
+        }
+        else
+        {
+            Show(MatToastType.Danger, $"{message}", "Błąd", "");
+            size = "0px";
+            text = "Zarejestruj się";
+        }
+    }
+
+    #region Toaster
+    protected override async Task OnInitializedAsync()
+    {
+        _showProgressBar = Toaster.Configuration.ShowProgressBar;
+        _showCloseButton = Toaster.Configuration.ShowCloseButton;
+        _maximumOpacity = Toaster.Configuration.MaximumOpacity.ToString();
+        _showTransitionDuration = Toaster.Configuration.ShowTransitionDuration.ToString();
+        _visibleStateDuration = Toaster.Configuration.VisibleStateDuration.ToString();
+        _hideTransitionDuration = Toaster.Configuration.HideTransitionDuration.ToString();
+        _requireInteraction = Toaster.Configuration.RequireInteraction;        
+    }
+    private bool _showProgressBar;
+    private bool _showCloseButton;
+    private bool _actionOnClick;
+    private string _maximumOpacity;
+
+    private string _showTransitionDuration;
+    private string _visibleStateDuration;
+    private string _hideTransitionDuration;
+    private bool _requireInteraction;
+    public string _maxDisplayedToasts
+    {
+        get { return Toaster.Configuration.MaxDisplayedToasts.ToString(); }
+        set { Toaster.Configuration.MaxDisplayedToasts = Convert.ToInt32(value); }
+    }
+    private string _toastPosition
+    {
+        get { return Toaster.Configuration.Position.ToString(); }
+        set { Toaster.Configuration.Position = (MatToastPosition)Enum.Parse(typeof(MatToastPosition), value); }
+    }
+
+    public void Show(MatToastType type, string message, string title, string icon = "")
+    {
+        Toaster.Add(message, type, title, icon, config =>
+        {
+            config.ShowCloseButton = _showCloseButton;
+            config.ShowProgressBar = _showProgressBar;
+            config.MaximumOpacity = Convert.ToInt32(_maximumOpacity);
+
+            config.ShowTransitionDuration = Convert.ToInt32(_showTransitionDuration);
+            config.VisibleStateDuration = Convert.ToInt32(_visibleStateDuration);
+            config.HideTransitionDuration = Convert.ToInt32(_hideTransitionDuration);
+
+            config.RequireInteraction = _requireInteraction;
+
+            if (_actionOnClick)
+            {
+                config.Onclick = toast =>
+                {
+                    Console.WriteLine($"Title: \"{toast.Title}\"; message: \"{toast.Message}\"; Type: {toast.Options.Type}");
+                    return Task.CompletedTask;
+                };
+            }
+        });
+    }
+    #endregion
+}

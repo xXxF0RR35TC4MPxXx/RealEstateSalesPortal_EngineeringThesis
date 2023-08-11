@@ -1,0 +1,126 @@
+﻿@page "/Agency/{agencyId}/Agents"
+@using Inżynierka.Client.Handlers;
+@using Inżynierka.Client.Logics;
+@using Inżynierka.Client.Pages.Offer.Search
+@using Inżynierka.Shared.DTOs.Agency;
+@using Inżynierka.Shared.DTOs.Offers.Read;
+@using Inżynierka.Shared.ViewModels.Offer.Filtering;
+@using Inżynierka_Common.Enums;
+@using Inżynierka_Common.Listing;
+@using Inżynierka_Services.Listing;
+@inject IApiLogic _apiLogic
+@inject HttpClient Http
+@inject NavigationManager NavManager
+<BlazorStyled.Styled>
+    .user-title-bar
+    {
+    font-size: 24px;
+    font-family: "Open Sans", sans-serif;
+    font-weight: bold;
+    }
+</BlazorStyled.Styled>
+
+<SpinLoader IsLoading="isLoading">
+    <LoadingTemplate>
+        <LoadingScreen Text="Trwa wczytywanie listy agentów..." />
+    </LoadingTemplate>
+    <ContentTemplate>
+        @if (agents != null)
+        {
+            <PageTitle>Agenci - BuyDom.pl</PageTitle>
+            <div class="mat-layout-grid">
+                <div class="mat-layout-grid-inner">
+                    <AuthorizeView>
+                        <Authorized>
+                            @{
+                                SetUserId(context.User.Claims.FirstOrDefault(x => x.Type == "UserId")?.Value);
+                            }
+                            <AgencyPageInfo viewerId=@userId agencyId="@agencyId" />
+                        </Authorized>
+                        <NotAuthorized>
+                            <AgencyPageInfo agencyId="@agencyId" />
+                        </NotAuthorized>
+                    </AuthorizeView>
+
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+                        @if (agents.TotalCount == 0)
+                        {
+                            <p class="user-title-bar">Agencja nie posiada zatrudnia aktualnie żadnych agentów</p>
+
+                        }
+                        else
+                        {
+                            <p class="user-title-bar">Agencja zatrudnia obecnie @agents.TotalCount @PolishConjugationHelper.Agents(agents.TotalCount)</p>
+                        }
+
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+
+                    @{
+                        if (agents.AgentsDTOs != null)
+                        {
+                            @foreach (AgentsDTO agent in agents.AgentsDTOs)
+                            {
+                                string? imgSrc = null;
+                                if (agent.Avatar != null)
+                                {
+                                    imgSrc = String.Format("data:image/jpg;base64,{0}", Convert.ToBase64String(agent.Avatar));
+                                }
+                                <AuthorizeView>
+                                    <Authorized>
+                                        <SingleAgentInAgency MyId=@(Int32.Parse(userId)) AgencyId=@(Int32.Parse(agencyId)) Id="@agent.Id" FullName="@agent.FullName" Email="@agent.Email" Phone="@agent.Phone" Avatar="@imgSrc" ActiveOffers="@agent.ActiveOffers"/>
+                                    </Authorized>
+                                </AuthorizeView>
+                            }
+                        }
+                    }
+
+                </div>
+            </div>
+        }
+    </ContentTemplate>
+</SpinLoader>
+
+@code {
+    [Parameter]
+    public string agencyId { get; set; }
+
+    public string? userId { get; set; }
+    public bool isLoading = true;
+    public AgentsListing? agents = new();
+    public bool viewerIsInAgency = false;
+
+    public async void SetUserId(string? id)
+    {
+        if(id==null || id=="")
+        {
+            NavManager.NavigateTo($"/Agency/{agencyId}");
+        }
+
+        userId = id;
+        var response = await Http.GetAsync($"AgencyController/CheckIfAgent/{userId}/{agencyId}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            viewerIsInAgency = true;
+        }
+        else
+        {
+            viewerIsInAgency = false;
+        }
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        //init here
+        agents = await _apiLogic.GetAgents(Int32.Parse(agencyId));
+        if(agents==null)
+        {
+            NavManager.NavigateTo($"/Agency/{agencyId}", true);
+        }
+        isLoading = false;
+        await base.OnInitializedAsync();
+    }
+}

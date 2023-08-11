@@ -1,0 +1,368 @@
+﻿@using Inżynierka.Client.Logics;
+@using Inżynierka.Shared.DTOs.Offers;
+@using Inżynierka.Shared.Entities;
+@using Inżynierka.Shared.ViewModels;
+@using Inżynierka_Common.Enums
+@using Inżynierka_Common.Helpers
+@using System.ComponentModel.DataAnnotations;
+@inject HttpClient Http
+@inject IMatToaster Toaster
+@inject NavigationManager NavManager
+@inject IApiLogic _apiLogic
+<BlazorStyled.Styled>
+    .hide-address-label-1
+    {
+        margin-top: 7px;
+        font-size: 15px;
+    }
+
+    .no-users-info
+    {
+        text-align: justify;
+    }
+
+    .single-user-on-list
+    {
+        margin-top: 5px;
+    overflow: scroll;
+    }
+
+    .add-user-modal-h
+    {
+    font-size: 24px;
+    font-family: "Open Sans", sans-serif;
+    font-weight: bold;
+    }
+
+    .noPaddingOnSides
+    {
+        padding-top: 5px !important;
+    padding-bottom: 0 !important;
+    }
+
+    .modal-footer
+    {
+        justify-content: left !important;
+    }
+
+    .betterNavLink
+    {
+        color: black !important;
+        text-decoration: none !important;
+        padding-left: 8px !important; 
+    }
+    .betterNavLink:hover
+    {
+        cursor:pointer;
+    }
+
+    #myModal
+    {
+        font-family: "Open Sans", sans-serif;
+    }
+
+    .singleUser
+    {
+    
+    max-height: 36px;
+    overflow-y: scroll;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    }
+
+</BlazorStyled.Styled>
+
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <MatThemeProvider Theme="@theme">
+            <div class="modal-header">
+                <h5 class="modal-title">@Title</h5>
+                <MatButton type="button" class="close" @onclick="@ModalCancel">&times;</MatButton>
+            </div>
+            <div class="modal-body">
+                <div class="mat-layout-grid noPaddingOnSides">
+                    <EditForm Model="@hiddenModel" class="mat-layout-grid-inner" OnValidSubmit="@(()=>SaveCheckbox())">
+                    <DataAnnotationsValidator />
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-6">
+                            <p class="hide-address-label-1">Ukryj adres nieruchomości:</p>
+                        </div>
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                            <MatCheckbox Style="width:100%;" @bind-Value="@hiddenModel.checkBox">Ukryty</MatCheckbox>
+                        </div>
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                            <MatButton Outlined=true Icon="save" Style="padding-top: 4px;" Type="submit">Zapisz</MatButton>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="mat-layout-grid noPaddingOnSides" style="width:100%;">
+                    <div class="mat-layout-grid-inner">
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12 ">
+                            <h4>Wyjątki - użytkownicy z dostępem</h4>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mat-layout-grid noPaddingOnSides">
+                    <EditForm Model="@addUserModel" class="mat-layout-grid-inner" OnValidSubmit="@(()=>AddToList())">
+                    <DataAnnotationsValidator />
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-9">
+                            <p>
+                                <MatTextField Label="Dodaj użytkownika po adresie email"
+                                                        @bind-Value=@addUserModel.newUserEmail
+                                                        Style="width:100%;"
+                                                        DecimalPlaces=0>
+                                </MatTextField>
+                                <ValidationMessage For="@(() => addUserModel.newUserEmail)" />
+                            </p>
+                        </div>
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                            <MatButton Style="height: 78%;" Unelevated="true" Icon="person_add" Type="submit">Dodaj</MatButton>
+                        </div>
+                    </EditForm>
+                </div>
+                    <div class="mat-layout-grid noPaddingOnSides" style="max-height: 200px; overflow: scroll;">
+                        <div class="mat-layout-grid-inner">
+                            @{
+                                if(acceptedUsers!=null && acceptedUsers.Count>0)
+                                {
+                                    foreach (var user in acceptedUsers)
+                                    {
+                                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-9 singleuser" style="box-shadow: rgb(156, 156, 158) 0px 0px 20px -8px;">
+                                            <div class="single-user-on-list">
+                                                <NavLink class="betterNavLink" @onclick="()=>RedirectToUser(user.userId)">
+                                                    ID: @user.userId - @user.userEmail
+                                                </NavLink>
+                                            </div>
+                                        </div>
+                                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                                            <MatThemeProvider Theme="@removeTheme">
+                                                <MatButton Style="width:122%;" Unelevated="true" Icon="remove" @onclick=@(()=>RemoveFromList(user.userId))>Usuń</MatButton>
+                                            </MatThemeProvider>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12">
+                                        <p class="no-users-info">Nie dodano wyjątków. W przypadku zablokowania widoczności adresu tylko właściciel będzie mógł go wyświetlić.</p>
+                                    </div>
+                                }
+                            }
+                    </div>
+                </div> 
+            </div>
+            </MatThemeProvider>
+        </div>
+    </div>
+</div>
+
+@code {
+
+
+    public class changeVisibilityModel
+    {
+        public bool checkBox { get; set; } = false;
+        public changeVisibilityModel() { }
+        public changeVisibilityModel(bool check) { checkBox = check; }
+
+    }
+
+    public class newUserModel
+    {
+        [Required(ErrorMessage = "Adres email jest wymagany!")]
+        [DataType(DataType.EmailAddress)]
+        [RegularExpression("^[\\w-_]+(\\.[\\w!#$%'*+\\/=?\\^`{|}]+)*@((([\\-\\w]+\\.)+[a-zA-Z]{2,20})|(([0-9]{1,3}\\.){3}[0-9]{1,3}))$", ErrorMessage = "Podana wartość nie jest poprawnym adresem email!")]
+        public string? newUserEmail { get; set; }
+
+        public newUserModel() { }
+        public newUserModel(string UserEmail) { newUserEmail = UserEmail; }
+
+    }
+
+    public changeVisibilityModel hiddenModel = new();
+    public newUserModel addUserModel = new();
+
+
+
+    public IList<OfferVisibleForUserDTO>? acceptedUsers { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int offerId { get; set; }
+
+    public void RedirectToUser(int userId)
+    {
+        NavManager.NavigateTo($"User/{userId}", true);
+    }
+
+    public async void AddToList()
+    {
+        var result = await Http.GetAsync($"VisibilityController/AddUserToDetails/{offerId}/{addUserModel.newUserEmail}");
+        if(result.IsSuccessStatusCode)
+        {
+            Show(MatToastType.Success, $"Użytkownik dodany pomyślnie", "Sukces", "");
+            var result2 = await Http.GetAsync($"VisibilityController/AcceptedUsers/{offerId}");
+            if (result2.IsSuccessStatusCode)
+            {
+                acceptedUsers = await result2.Content.ReadFromJsonAsync<IList<OfferVisibleForUserDTO>?>();
+                
+            }
+            else
+            {
+                string error = await result2.Content.ReadAsStringAsync();
+                Show(MatToastType.Danger, $"{error}", "Błąd", "");
+            }
+        }
+        else
+        {
+            var error = await result.Content.ReadFromJsonAsync<ResponseViewModel>();
+            Show(MatToastType.Danger, $"{error.Value}", "Błąd", "");
+        }
+        StateHasChanged();
+    }
+
+    public async void RemoveFromList(int userId)
+    {
+        var result = await Http.GetAsync($"VisibilityController/RemoveDetailsFromUser/{offerId}/{userId}");
+        if(result.IsSuccessStatusCode)
+        {
+            Show(MatToastType.Success, $"Użytkownik usunięty pomyślnie", "Sukces", "");
+            var result2 = await Http.GetAsync($"VisibilityController/AcceptedUsers/{offerId}");
+            if (result2.IsSuccessStatusCode)
+            {
+                acceptedUsers = await result2.Content.ReadFromJsonAsync<IList<OfferVisibleForUserDTO>?>();
+            }
+            else
+            {
+                string error = await result2.Content.ReadAsStringAsync();
+                Show(MatToastType.Danger, $"{error}", "Błąd", "");
+            }
+            
+        }
+        else
+        {
+            var error = await result.Content.ReadFromJsonAsync<ResponseViewModel>();
+            Show(MatToastType.Danger, $"{error.Value}", "Błąd", "");
+        }
+        StateHasChanged();
+    }
+
+
+    public async void SaveCheckbox()
+    {
+        string restrictText = hiddenModel.checkBox.ToString();
+        var result = await _apiLogic.ChangeOfferVisibility(offerId, restrictText);
+        if (result == "")
+        {
+            Show(MatToastType.Success, $"Widoczność oferty zmieniona pomyślnie", "Sukces", "");
+            StateHasChanged();
+        }
+        else
+        {
+            Show(MatToastType.Danger, $"{result}", "Błąd", "");
+        }
+    }
+
+
+    MatTheme theme = new MatTheme()
+        {
+            Primary = "green",
+            Secondary= "green",
+            Background = "green",
+            OnPrimary = "white",
+        };
+
+    MatTheme removeTheme = new()
+        {
+            Primary = "#f23a3a",
+            Secondary = "#f23a3a",
+            Surface = "#ffffff"
+        };
+
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public EventCallback<bool?> OnClose { get; set; }
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(null);
+    }
+
+    #region Toaster
+    protected override async Task OnInitializedAsync()
+    {
+        _showProgressBar = Toaster.Configuration.ShowProgressBar;
+        _showCloseButton = Toaster.Configuration.ShowCloseButton;
+        _maximumOpacity = Toaster.Configuration.MaximumOpacity.ToString();
+        _showTransitionDuration = Toaster.Configuration.ShowTransitionDuration.ToString();
+        _visibleStateDuration = Toaster.Configuration.VisibleStateDuration.ToString();
+        _hideTransitionDuration = Toaster.Configuration.HideTransitionDuration.ToString();
+        _requireInteraction = Toaster.Configuration.RequireInteraction;
+
+        hiddenModel = new(await _apiLogic.CheckVisibility(offerId));
+        
+
+        var result = await _apiLogic.GetAcceptedUsers(offerId);
+        if(result.Item1!=null)
+        {
+            acceptedUsers = result.Item1;
+        }
+        else
+        {
+            string error = result.Item2;
+            Show(MatToastType.Danger, $"{error}", "Błąd", "");
+        }
+
+        await base.OnInitializedAsync();
+    }
+
+    private bool _showProgressBar;
+    private bool _showCloseButton;
+    private bool _actionOnClick;
+    private string _maximumOpacity;
+
+    private string _showTransitionDuration;
+    private string _visibleStateDuration;
+    private string _hideTransitionDuration;
+    private bool _requireInteraction;
+    public string _maxDisplayedToasts
+    {
+        get { return Toaster.Configuration.MaxDisplayedToasts.ToString(); }
+        set { Toaster.Configuration.MaxDisplayedToasts = Convert.ToInt32(value); }
+    }
+    private string _toastPosition
+    {
+        get { return Toaster.Configuration.Position.ToString(); }
+        set { Toaster.Configuration.Position = (MatToastPosition)Enum.Parse(typeof(MatToastPosition), value); }
+    }
+
+    public void Show(MatToastType type, string message, string title, string icon = "")
+    {
+        Toaster.Add(message, type, title, icon, config =>
+        {
+            config.ShowCloseButton = _showCloseButton;
+            config.ShowProgressBar = _showProgressBar;
+            config.MaximumOpacity = Convert.ToInt32(_maximumOpacity);
+
+            config.ShowTransitionDuration = Convert.ToInt32(_showTransitionDuration);
+            config.VisibleStateDuration = Convert.ToInt32(_visibleStateDuration);
+            config.HideTransitionDuration = Convert.ToInt32(_hideTransitionDuration);
+
+            config.RequireInteraction = _requireInteraction;
+
+            if (_actionOnClick)
+            {
+                config.Onclick = toast =>
+                {
+                    return Task.CompletedTask;
+                };
+            }
+        });
+    }
+    #endregion
+}

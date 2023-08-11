@@ -1,0 +1,297 @@
+﻿@page "/Offer/Create/Garage/Rent"
+<PageTitle>Tworzenie oferty wynajmu garażu - BuyDom.pl</PageTitle>
+@using Inżynierka.Shared.ViewModels
+@using Inżynierka.Shared.ViewModels.Offer.Create
+@using Inżynierka_Common.Enums
+@using System.Text.Json
+@using System.Text
+@using Inżynierka_Common.Helpers
+@using Inżynierka.Client.Logics
+@inject IApiLogic _apiLogic
+@inject IJSRuntime JsRuntime
+@inject HttpClient Http
+@inject NavigationManager NavManager;
+<BlazorStyled.Styled>
+    #Create-title-bar
+    {
+    font-size: 24px;
+    font-family: "Open Sans", sans-serif;
+    font-weight: bold;
+    }
+</BlazorStyled.Styled>
+<AuthorizeView>
+    <NotAuthorized>
+        @{
+            NavManager.NavigateTo("/Auth/SignIn");
+        }
+    </NotAuthorized>
+</AuthorizeView>
+<EditForm Model="myModel" OnValidSubmit="Success">
+    <DataAnnotationsValidator />
+    <MatThemeProvider Theme="@theme">
+        <div class="mat-layout-grid">
+            <div class="mat-layout-grid-inner">
+
+                <!-- page header -->
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1"></div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-10">
+                    <p id="Create-title-bar">Tworzenie oferty wynajmu garażu</p>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1"></div>
+
+                <!-- offer title-->
+                <CreateFormSplitter Text="Podstawowe informacje"></CreateFormSplitter>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+                    <p>
+                        <MatTextField Style="width:100%;" Label="Tytuł ogłoszenia" @bind-Value="myModel.OfferTitle" />
+                        <ValidationMessage For="@(() => myModel.OfferTitle)" />
+                    </p>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                <!-- offer row 1 (price, rent, area, roomCount)-->
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <p>
+                        <MatNumericUpDownField Label="Czynsz (zł)"
+                                               @bind-Value=@myModel.Price
+                                               Style="width:100%;"
+                                               DecimalPlaces=0>
+                        </MatNumericUpDownField>
+                        <ValidationMessage For="@(() => myModel.Price)" />
+                    </p>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <p>
+                        <MatNumericUpDownField Label="Powierzchnia (m²)"
+                                               @bind-Value=@myModel.Area
+                                               DecimalPlaces=0
+                                               Style="width:100%;">
+                        </MatNumericUpDownField>
+                        <ValidationMessage For="@(() => myModel.Area)" />
+                    </p>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-6"></div>
+
+                <!-- photo upload-->
+                <CreateFormSplitter Text="Dodaj zdjęcia"></CreateFormSplitter>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+                    <MatFileUpload OnChange="@MultipleFilesReady" AllowMultiple="true" Label="@fileUploadText"></MatFileUpload>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                <!-- address -->
+                <CreateFormSplitter Text="Lokalizacja"></CreateFormSplitter>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <MatSelectValue Style="width:100%;" Label="Województwo" @bind-Value="@myModel.Voivodeship" Items="@voivodeships" ValueSelector="@(i=>i)">
+                        <ItemTemplate Context="thisContext">
+                            <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                        </ItemTemplate>
+                    </MatSelectValue>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <p>
+                        <MatTextField Style="width:100%;" Label="Miasto" @bind-Value="myModel.City" />
+                        <ValidationMessage For="@(() => myModel.City)" />
+                    </p>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4">
+                    <p>
+                        <MatTextField Style="width:100%;" Label="Adres" @bind-Value="myModel.Address" />
+                        <ValidationMessage For="@(() => myModel.Address)" />
+                    </p>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                <!-- description textArea -->
+                <CreateFormSplitter Text="Informacje szczegółowe"></CreateFormSplitter>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+                    <p>
+                        <MatTextField HelperText="Przyjmuję tagi HTML celem dekoracji tekstu" HelperTextPersistent="true" Style="width:100%;" @bind-Value="myModel.Description" Label="Opis" TextArea="true"></MatTextField>
+                        <ValidationMessage For="@(() => myModel.Description)" />
+                    </p>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <MatSelectValue Style="width:100%;" Label="Typ konstrukcji" @bind-Value="@myModel.Construction" Items="@constructions" ValueSelector="@(i=>i)">
+                        <ItemTemplate Context="thisContext">
+                            <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                        </ItemTemplate>
+                    </MatSelectValue>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <MatSelectValue Style="width:100%;" Label="Lokalizacja" @bind-Value="@myModel.Location" Items="@locations" ValueSelector="@(i=>i)">
+                        <ItemTemplate Context="thisContext">
+                            <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                        </ItemTemplate>
+                    </MatSelectValue>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <MatSelectValue Style="width:100%;" Label="Oświetlenie" @bind-Value="@myModel.Lighting" Items="@lightingTypes" ValueSelector="@(i=>i)">
+                        <ItemTemplate Context="thisContext">
+                            <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                        </ItemTemplate>
+                    </MatSelectValue>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <MatSelectValue Style="width:100%;" Label="Ogrzewanie" @bind-Value="@myModel.Heating" Items="@heatingTypes" ValueSelector="@(i=>i)">
+                        <ItemTemplate Context="thisContext">
+                            <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                        </ItemTemplate>
+                    </MatSelectValue>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+            
+                <!-- submit button -->
+                <CreateFormSplitter Text=""></CreateFormSplitter>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <MatCheckbox Style="width:100%;" @bind-Value="@myModel.RemoteControl" Indeterminate="true">Obsługa zdalna</MatCheckbox>
+                    <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     myModel.RemoteControl = null;
+                                 })">Wyczyść</MatButton>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4"></div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <MatButton Disabled="@submitDisabled" Style="width: 100%;" Type="submit" Raised="true">Utwórz ofertę</MatButton>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                <div>@errorMessage</div>
+            </div>
+        </div>
+    </MatThemeProvider>
+</EditForm>
+@code {
+    GarageRentOfferCreateViewModel myModel = new();
+
+
+    public static int maxPhotosCountAllowed = 15;
+    public static int maxMb =1;
+    public static int maxFileSizeAllowed = 1024 * 1024 * maxMb;
+    public string fileUploadText = $"Przenieś zdjęcia tutaj lub Szukaj na dysku (max. {maxPhotosCountAllowed} zdjęć)";
+    public bool submitDisabled = false;
+    public string errorMessage = "";
+
+
+    public Voivodeships[] voivodeships = Enum.GetValues(typeof(Voivodeships)).Cast<Voivodeships>().ToArray();
+    public GarageConstruction[] constructions = Enum.GetValues(typeof(GarageConstruction)).Cast<GarageConstruction>().ToArray();
+    public GarageLocation[] locations = Enum.GetValues(typeof(GarageLocation)).Cast<GarageLocation>().ToArray();
+    public GarageLighting[] lightingTypes = Enum.GetValues(typeof(GarageLighting)).Cast<GarageLighting>().ToArray();
+    public GarageHeating[] heatingTypes = Enum.GetValues(typeof(GarageHeating)).Cast<GarageHeating>().ToArray();
+
+    public List<string> imagesInBase64 = new();
+
+    public async Task Success()
+    {
+        //await JsRuntime.InvokeVoidAsync("console.log","Żyję");
+        if (submitDisabled == false)
+        {
+            myModel.Photos = imagesInBase64;
+            var message = await _apiLogic.CreateGarageRentOffer(myModel);
+            if (message == "Success")
+            {
+                NavManager.NavigateTo("/homepage");
+            }
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("window.alert", "Podczas tworzenia oferty wystąpił błąd. Spróbuj ponownie później!");
+            }
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync("window.alert", "Ładnie to tak próbować wcisnąć fałszywy plik? 😉");
+        }
+
+    }
+
+    //validates the photos extension, size and count and converts them into base64 strings
+    public async Task MultipleFilesReady(IMatFileUploadEntry[] files)
+    {
+        imagesInBase64.Clear();
+        if (files.Any(f => !f.Name.EndsWith(".png") && !f.Name.EndsWith(".jpeg") && !f.Name.EndsWith(".jpg")))
+        {
+            fileUploadText = $"Przenieś zdjęcia tutaj lub Szukaj na dysku (max. {maxPhotosCountAllowed} zdjęć) - wspierane są wyłącznie pliki o rozszerzeniu .jpg oraz .png)";
+            submitDisabled = true;
+            return;
+        }
+        if (files.Any(f => f.Size > maxFileSizeAllowed))
+        {
+            fileUploadText = $"Przenieś zdjęcia tutaj lub Szukaj na dysku (max. {maxPhotosCountAllowed} zdjęć) - jedno ze zdjęć ma zbyt duży rozmiar! (max. {maxMb}MB)";
+            submitDisabled = true;
+            return;
+        }
+        if (files.Count() > 15)
+        {
+            submitDisabled = true;
+            fileUploadText = $"Przenieś zdjęcia tutaj lub Szukaj na dysku (max. {maxPhotosCountAllowed} zdjęć) - podano zbyt wiele zdjęć!";
+        }
+        else if (files.Count() == 0)
+        {
+            submitDisabled = true;
+            fileUploadText = $"Przenieś zdjęcia tutaj lub Szukaj na dysku (max. {maxPhotosCountAllowed} zdjęć) - wymagane przynajmniej jedno zdjęcie!";
+        }
+        else
+        {
+            submitDisabled = false;
+            fileUploadText = $"Przenieś zdjęcia tutaj lub Szukaj na dysku (max. {maxPhotosCountAllowed} zdjęć) - podano {files.Count()}/{maxPhotosCountAllowed}";
+        }
+
+        try
+        {
+            foreach (var file in files)
+            {
+                if (file == null)
+                {
+                    return;
+                }
+
+                using (var stream = new MemoryStream())
+                {
+                    await file.WriteToStreamAsync(stream);
+                    byte[] somBytes = GetBytes(stream);
+                    byte[] headerBytes = somBytes.Take(4).ToArray();
+
+                    if (FileExtensionValidationHelper.ValidateIfCorrectPhotoFormat(headerBytes))
+                    {
+                        string base64String = Convert.ToBase64String(somBytes, 0, somBytes.Length);
+                        imagesInBase64.Add(base64String);
+                    }
+                    else
+                    {
+                        submitDisabled = true;
+                        fileUploadText = $"Przenieś zdjęcia tutaj lub Szukaj na dysku (max. {maxPhotosCountAllowed} zdjęć) - jeden z plików jest uszkodzonym lub nieobsługiwanym zdjęciem";
+                        return;
+                    }
+
+                }
+            }
+        }
+        catch (Exception e)
+        { }
+    }
+
+    public static byte[] GetBytes(Stream stream)
+    {
+        var bytes = new byte[stream.Length];
+        stream.Seek(0, SeekOrigin.Begin);
+        stream.ReadAsync(bytes, 0, bytes.Length);
+        stream.Dispose();
+        return bytes;
+    }
+
+    MatTheme theme = new()
+        {
+            Primary = "#4caf50",
+            Secondary = "#4caf50",
+            Surface = "#ffffff"
+        };
+}

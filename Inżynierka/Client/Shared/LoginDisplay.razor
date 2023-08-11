@@ -1,0 +1,169 @@
+﻿@using Blazored.LocalStorage
+@using Inżynierka.Client.AuthProviders
+@using Inżynierka.Client.Logics
+@using static Inżynierka.Client.Shared.NewOfferModalDialog
+@inject ILocalStorageService _localStorageService;
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject IApiLogic _apiLogic
+@inject AuthenticationStateProvider _authStateProvider
+@inject NavigationManager NavManager
+<BlazorStyled.Styled>
+    .userLink
+    {
+    text-align: right;
+    position: absolute !important;
+    padding-left: 1% !important;
+    padding-right: 1% !important;
+    margin-right: 1%;
+    right: 14%;
+    top: 19%;
+    height: 61% !important;
+    }
+</BlazorStyled.Styled>
+<AuthorizeView>
+    <Authorized>
+        <MatThemeProvider Theme="@theme">
+            <MatButton @onclick="()=>OpenNewOfferDialog()" Unelevated="true" Icon="add" style="margin-right: 5px; margin-left: 3px; position: absolute; right: 25%; top:20%;">Dodaj ofertę</MatButton>
+        </MatThemeProvider>
+        @{
+            SetUserId(context.User.Claims.FirstOrDefault(x => x.Type == "UserId")?.Value);
+        }
+        <MatThemeProvider Theme="@themeUser">
+            <MatButton OnClick="@GetUserLink" class="userLink">Witaj @context.User.Identity?.Name.Split(' ')[0]!</MatButton>
+        </MatThemeProvider>
+        <button type="button" style="position: absolute; margin-right: 5px; top: 5px; right: 11%;"
+                @onclick="Logout" class="nav-link btn btn-link">
+            <span class="oi oi-power-standby" style="font-size: 30px;"></span>
+        </button>
+
+    </Authorized>
+    <NotAuthorized>
+        <NavLink id="signIn" style="position: absolute; padding-top: 10px; margin-right: 5px; right: 11%;" href="/Auth/SignIn">
+            Logowanie / rejestracja
+        </NavLink>
+    </NotAuthorized>
+</AuthorizeView>
+@if (isNewOfferDialogOpen)
+{
+
+    <NewOfferModalDialog Title="Dodawanie oferty"
+                     Text="Wybierz typ tworzonej oferty."
+                     OnClose="@OnNewOfferDialogClose">
+    </NewOfferModalDialog>
+}
+
+@code {
+
+        MatTheme theme = new MatTheme()
+        {
+            Primary = "green",
+            Background = "green",
+            OnPrimary = "white",
+        };
+        
+    MatTheme themeUser = new MatTheme()
+        {
+            Primary = "white",
+            Background = "green",
+            OnPrimary = "white",
+        };
+
+    #region NewOfferModal
+
+    public bool isNewOfferDialogOpen { get; set; }
+
+    private void OpenNewOfferDialog()
+    {
+        isNewOfferDialogOpen = true;
+        StateHasChanged();
+    }
+
+    public void SetUserId(string id)
+    {
+        int parsedId;
+        if(Int32.TryParse(id, out parsedId))
+        {
+            userId = parsedId;
+        }
+        else
+        {
+            userId = null;
+        }
+    }
+    public int? userId { get; set; }
+
+    public void GetUserLink()
+    {
+        NavManager.NavigateTo($"User/{userId}", true);
+    }
+
+    private async void OnNewOfferDialogClose(NewOfferType? type)
+    {
+        isNewOfferDialogOpen = false;
+        StateHasChanged();
+        if (type == NewOfferType.ApartmentSale)
+        {
+            NavManager.NavigateTo("Offer/Create/Apartment/Sale");
+        }
+        else if (type == NewOfferType.ApartmentRent)
+        {
+            NavManager.NavigateTo("Offer/Create/Apartment/Rent");
+        }
+        else if (type == NewOfferType.HouseRent)
+        {
+            NavManager.NavigateTo("Offer/Create/House/Rent");
+        }
+        else if (type == NewOfferType.HouseSale)
+        {
+            NavManager.NavigateTo("Offer/Create/House/Sale");
+        }
+        else if (type == NewOfferType.RoomRent)
+        {
+            NavManager.NavigateTo("Offer/Create/Room/Rent");
+        }
+        else if (type == NewOfferType.Plot)
+        {
+            NavManager.NavigateTo("Offer/Create/Plot");
+        }
+        else if (type == NewOfferType.HallRent)
+        {
+            NavManager.NavigateTo("Offer/Create/Hall/Rent");
+        }
+        else if (type == NewOfferType.HallSale)
+        {
+            NavManager.NavigateTo("Offer/Create/Hall/Sale");
+        }
+        else if (type == NewOfferType.GarageRent)
+        {
+            NavManager.NavigateTo("Offer/Create/Garage/Rent");
+        }
+        else if (type == NewOfferType.GarageSale)
+        {
+            NavManager.NavigateTo("Offer/Create/Garage/Sale");
+        }
+        else if (type == NewOfferType.PremisesSale)
+        {
+            NavManager.NavigateTo("Offer/Create/Premises/Sale");
+        }
+        else if (type == NewOfferType.PremisesRent)
+        {
+            NavManager.NavigateTo("Offer/Create/Premises/Rent");
+        }
+    }
+
+    #endregion
+
+    private async Task Logout()
+    {
+
+        var response = await _apiLogic.LogoutAsync();
+        if (response == "Success")
+        {
+            (_authStateProvider as CustomAuthStateProvider).ClearAuthInfo();
+            await _localStorageService.RemoveItemAsync("isauthenticated");
+            NavManager.NavigateTo("/homepage", true);
+        }
+
+    }
+}

@@ -1,0 +1,596 @@
+﻿@using Inżynierka.Client.Logics;
+@using Inżynierka.Shared.ViewModels.Offer.Filtering;
+@using Inżynierka.Shared.ViewModels;
+@using Inżynierka_Common.Enums;
+@using Inżynierka_Common.Listing;
+@using Inżynierka_Services.Listing;
+@inject HttpClient Http
+@inject IApiLogic _apiLogic
+@inject IJSRuntime JS
+@inject IMatToaster Toaster
+@inject NavigationManager NavManager
+<BlazorStyled.Styled>
+
+    .copy-invitation-code-button
+    {
+        position:absolute;
+        top: 11% !important;
+        right: 2.2% !important;
+    }
+
+    .numberCircle {
+    background: red;
+    border: 1px solid red;
+    color: white;
+    text-align: center;
+    font: 13px Arial, sans-serif;
+    margin-left: 9px;
+    padding: 2px;
+    border-radius: 50%;
+    width: 21px;
+    height: 21px;
+    font-weight: bold;
+    }
+
+    .agency-profile-avatar-img
+    {
+    width: 19%;
+    height: 33vh;
+    border-radius: 14px;
+    margin-left: 2%;
+    margin-top: 2%;
+    box-shadow: rgb(156, 156, 158) 0px 0px 20px -8px;
+
+    object-fit: contain;
+    overflow: hidden;
+    }
+
+    #user-profile-user-info
+    {
+    box-shadow: 0px 0px 20px -8px rgba(156, 156, 158, 1);
+    border-radius: 25px;
+    }
+    .user-profile-user-name
+    {
+    position: absolute;
+    top: 8%;
+    font-size: 33px;
+    font-family: "Open Sans", sans-serif;
+    font-weight: bold;
+    left: 23%;
+    }
+
+    .user-profile-user-phone
+    {
+    position: absolute;
+    top: 33%;
+    left: 23%;
+    font-size: 18px;
+    }
+
+    .user-profile-info
+    {
+    position:relative;
+    }
+
+    #user-profile-show-seller-phone:hover
+    {
+    cursor: pointer;
+    }
+
+    #user-profile-show-seller-phone
+    {
+    }
+    .user-profile-agency-logo2
+    {
+    max-height: 15vh;
+    max-width: 17vw;
+    width: auto;
+    margin-left: 20%;
+    border-radius: 10px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    }
+    .user-profile-seller-type2
+    {
+    position: absolute !important;
+    left: 14%;
+    margin-bottom: 0px;
+    min-width: 14vw;
+    text-decoration: none;
+    color: gray;
+    font-family: "Open Sans", sans-serif;
+    }
+
+    .user-profile-seller-type-agency2
+    {
+    position: absolute !important;
+    bottom: 6.5vh;
+    min-width: 14vw;
+    text-decoration: none;
+    color: gray;
+    font-family: "Open Sans", sans-serif;
+    top: 33px;
+    right: 3%;
+    }
+
+    .user-profile-agency-name2
+    {
+    width: 100%;
+    position: absolute;
+    top: 100%;
+    text-align: center;
+    }
+
+    .user-profile-user-since2
+    {
+    text-align: center;
+    padding-right: 5px;
+    position: absolute;
+    color: gray;
+    left: 5%;
+    top: 112%;
+    font-size: 16px;
+    font-family: "Open Sans", sans-serif;
+    }
+
+    .user-profile-user-since-notOwner
+    {
+    text-align: center;
+    padding-right: 5px;
+    position: absolute;
+    color: gray;
+    left: 5%;
+    top: 105%;
+    font-size: 16px;
+    font-family: "Open Sans", sans-serif;
+    }
+
+    .user-profile-description2
+    {
+    position: absolute;
+    font-family: "Open Sans", sans-serif;
+    left: 23%;
+    top: 62%;
+    font-size: 16px;
+    max-width: 75%;
+    text-align: justify;
+    overflow: scroll;
+    height: 102px;
+    }
+</BlazorStyled.Styled>
+
+@if (agency != null)
+{
+    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1" />
+    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-10" id="user-profile-user-info">
+        <div class="user-profile-info">
+            @{
+                if (agency.AgencyLogo != null)
+                {
+                    var base64 = Convert.ToBase64String(agency.AgencyLogo);
+                    var imgSrc = String.Format("data:image/jpg;base64,{0}", base64);
+                    <img class="agency-profile-avatar-img" src="@imgSrc" />
+                }
+                else
+                {
+                    <img class="agency-profile-avatar-img" src="../images/avatar_placeholder.jpg" />
+                }
+            }
+
+            <p class="user-profile-user-name">@agency.AgencyName</p>
+            <div class="user-profile-user-phone">
+                @if (phone != null && phone != "")
+                {
+                    <b>Telefon: </b> @phone
+                    <p style="width:@(buttonUserPhoneVisible?"75%;":"1px;")" id="user-profile-show-seller-phone" @onclick="showFullSellerPhone">@((MarkupString)showSellerPhoneText)</p>
+                }
+            </div>
+
+            @if(viewerIsOwner==true)
+            {
+                <div class="copy-invitation-code-button">
+                    <MatThemeProvider Theme="@copyTheme">
+                        <MatButton Icon="file_copy" style="width: 100%;" Outlined=true OnClick=@(()=>CopyInviteCodeToClipboard())>
+                            Kopiuj zaproszenie
+                        </MatButton>
+                    </MatThemeProvider>
+                </div>
+            }
+            
+
+            @if (agency.AgencyDescription != null && agency.AgencyDescription != "")
+            {
+                <div class="user-profile-description2">
+                    <p>@agency.AgencyDescription</p>
+                </div>
+            }
+            <AuthorizeView>
+                <Authorized>
+                    <div id="user-profile-agency">
+                        @if (agency.AgencyCreatedAt!= null)
+                        {
+                            if(viewerIsOwner==true || viewerIsAgent==true)
+                            {
+                                <p class="user-profile-user-since2">Z nami od: @agency.AgencyCreatedAt.Value.Date.ToShortDateString()</p>
+                            }
+                            else
+                            {
+                                <p class="user-profile-user-since-notOwner">Z nami od: @agency.AgencyCreatedAt.Value.Date.ToShortDateString()</p>
+                            }
+                        }
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    @if (agency.AgencyCreatedAt != null)
+                    {
+                        <p class="user-profile-user-since-notOwner">Z nami od: @agency.AgencyCreatedAt.Value.Date.ToShortDateString()</p>    
+                    }
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+        <div class="mat-layout-grid">
+            <div class="mat-layout-grid-inner">
+                <AuthorizeView>
+                    <Authorized>
+                        <MatThemeProvider Theme="@theme">
+                            @{
+                                @if (viewerIsOwner == true)
+                                {
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3" />
+                               
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                        <MatButtonLink style="width: 100%;" Icon="star_rate" Href="@GetUserLink()" Outlined="true">Oferty</MatButtonLink>
+                                    </div>
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                        <MatButtonLink style="width: 100%;" Icon="person" Href="@GetAgentsLink()" Outlined="true">Agenci</MatButtonLink>
+                                    </div>
+
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                        <MatButtonLink style="width: 100%;" Icon="settings" Href="@GetUpdateLink()" Outlined="true">Ustawienia</MatButtonLink>
+                                    </div>
+                                        
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                    <MatThemeProvider Theme="@deleteTheme">
+                                        <MatButton style="width: 100%;" Icon="delete" OnClick="@(()=>ShowDeleteAgencyModal())" Outlined="true">Usuń agencję</MatButton>
+                                    </MatThemeProvider>
+                                    </div>
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1"/>
+                                }
+                                else if(viewerIsAgent == true)
+                                {
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3" />
+
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                        <MatButtonLink style="width: 100%;" Icon="star_rate" Href="@GetUserLink()" Outlined="true">Oferty</MatButtonLink>
+                                    </div>
+                                    
+
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                        <MatButtonLink style="width: 100%;" Icon="person" Href="@GetAgentsLink()" Outlined="true">Agenci</MatButtonLink>
+                                    </div>
+
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                        <MatThemeProvider Theme="@deleteTheme">
+                                            <MatButton style="width: 100%;" Icon="person_add_disabled" OnClick="@(()=>ShowLeaveAgencyModal())" Outlined="true">Opuść biuro</MatButton>
+                                        </MatThemeProvider>
+                                    </div>
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                        
+                                    </div>
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1" />
+                                }
+                            }
+                        </MatThemeProvider>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+        </div>
+    </div>
+    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1" />
+}
+
+@if (isLeaveAgencyModalDialogOpen)
+{
+    <RemoveConfirmationModalDialog 
+        DialogType="RemoveConfirmationModalDialog.ModalDialogType.YesNo"
+        Title="Potwierdzenie odejścia z agencji"
+        Text="Czy na pewno chcesz odejść z tej agencji? Wszystkie twoje oferty i wpisy w terminarzu pozostaną w agencji i utracisz do nich dostęp!"
+        OnClose="@OnLeaveDialogClose">
+    </RemoveConfirmationModalDialog>
+}
+
+@if (isDeleteDialogOpen)
+{
+    <RemoveConfirmationModalDialog 
+        DialogType="RemoveConfirmationModalDialog.ModalDialogType.DeleteCancel"
+        Title="Potwierdzenie usunięcia agencji"
+            Text="Wszystkim agentom zostanie przyznany status użytkownika prywatnego, a dotychczasowe oferty zostaną USUNIĘTE. Czy na pewno chcesz usunąć tę agencję?"
+        OnClose="@OnDeleteDialogClose">
+    </RemoveConfirmationModalDialog>
+}
+
+@code {
+    [Parameter]
+    public string? agencyId { get; set; }
+
+    [Parameter]
+    public string? viewerId { get; set; } = "";
+
+
+    public async Task CopyInviteCodeToClipboard()
+    {
+        if(agency!=null)
+        {
+            await JS.InvokeVoidAsync("clipboardCopy.copyText", agency.AgencyInvitationGuid.ToString());
+            Show(MatToastType.Info, $"Skopiowano do schowka", "Kod zaproszeniowy", "");
+        }
+    }
+
+    private async void OnDeleteDialogClose(bool accepted)
+    {
+        if (accepted)
+        {
+            var response = await _apiLogic.DeleteAgency(Int32.Parse(agencyId)); 
+            if (response != "")
+            {
+                Show(MatToastType.Danger, $"{response}", "Błąd", "");
+            }
+            else
+            {
+                isDeleteDialogOpen = false;
+                NavManager.NavigateTo($"/User/{viewerId}", true);
+            }
+        }
+        else
+        {
+            isDeleteDialogOpen = false;
+            StateHasChanged();
+        }
+    }
+
+    private async void OnLeaveDialogClose(bool accepted)
+    {
+        if (accepted)
+        {
+            var response = await _apiLogic.LeaveAgency();
+            if (response != "")
+            {
+                Show(MatToastType.Danger, $"{response}", "Błąd", "");
+            }
+            else
+            {
+                isLeaveAgencyModalDialogOpen = false;
+                NavManager.NavigateTo($"/User/{viewerId}", true);
+            }
+        }
+        else
+        {
+            isLeaveAgencyModalDialogOpen = false;
+            StateHasChanged();
+        }
+    }
+
+
+
+    private void ShowLeaveAgencyModal()
+    {
+        isLeaveAgencyModalDialogOpen = true;
+        StateHasChanged();
+    }
+
+    private void ShowDeleteAgencyModal()
+    {
+        isDeleteDialogOpen = true;
+        StateHasChanged();
+    }
+
+    public bool viewerIsOwner = false;
+    public bool isDeleteDialogOpen = false;
+    public bool isLeaveAgencyModalDialogOpen = false;
+    public bool viewerIsAgent = false;
+
+    #region Phone Number Hiding
+    public string phone = "";
+    public string showSellerPhoneText = "Pokaż >>";
+    bool buttonUserPhoneVisible = true;
+    //show the entire phone number of the seller
+
+    private void showFullSellerPhone()
+    {
+        if (agency != null)
+        {
+            phone = agency.AgencyPhoneNumber != null ? agency.AgencyPhoneNumber : "";
+            showSellerPhoneText = "&nbsp;";
+            buttonUserPhoneVisible = false;
+        }
+    }
+    #endregion
+
+    string message = "";
+    public async void isOwner()
+    {
+        if(viewerId == null || viewerId == "")
+        {
+            viewerIsOwner = false;
+        }
+        else
+        {
+            var response = await Http.GetAsync($"AgencyController/CheckIfOwner/{viewerId}/{agencyId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                viewerIsOwner = true;
+            }
+            else
+            {
+                var result = await response.Content.ReadFromJsonAsync<ResponseViewModel?>();
+                message = result.Value;
+                viewerIsOwner = false;
+            }
+        }
+        await JS.InvokeVoidAsync("console.log", $"isOwner: {viewerIsOwner}");
+    }
+
+    public async void isAgent()
+    {
+        if (viewerId == null || viewerId == "")
+        {
+            viewerIsAgent = false;
+        }
+        else
+        {
+            var agentResponse = await Http.GetAsync($"AgencyController/CheckIfAgent/{viewerId}/{agencyId}");
+
+            if (agentResponse.IsSuccessStatusCode)
+            {
+                viewerIsAgent = true;
+            }
+            else
+            {
+                var result = await agentResponse.Content.ReadFromJsonAsync<ResponseViewModel?>();
+                message = result.Value;
+                viewerIsAgent = false;
+            }
+        }
+    }
+
+    public string GetAgentsLink()
+    {
+        if (agencyId != null)
+        {
+            return $"Agency/{agencyId}/Agents";
+        }
+        else return "";
+    }
+
+    public string GetUserLink()
+    {
+        return $"Agency/{agencyId}";
+    }
+
+    public string GetUpdateLink()
+    {
+        return $"Agency/{agencyId}/Update";
+    }
+
+    public AgencyOfferListing? agency = new();
+    public static int pageSize = 10;
+    public static int? Page = 1;
+    public static Inżynierka_Common.Listing.SortOrder sortOrder = new();
+
+    public AgencyPageFilteringViewModel? model;
+
+    public int? todayCount = 0;
+    public bool agencyNotFound = false;
+    protected override async Task OnInitializedAsync()
+    {
+        
+        _showProgressBar = Toaster.Configuration.ShowProgressBar;
+        _showCloseButton = Toaster.Configuration.ShowCloseButton;
+        _maximumOpacity = Toaster.Configuration.MaximumOpacity.ToString();
+        _showTransitionDuration = Toaster.Configuration.ShowTransitionDuration.ToString();
+        _visibleStateDuration = Toaster.Configuration.VisibleStateDuration.ToString();
+        _hideTransitionDuration = Toaster.Configuration.HideTransitionDuration.ToString();
+        _requireInteraction = Toaster.Configuration.RequireInteraction;
+
+
+        sortOrder.Sort = new();
+        KeyValuePair<string, string> sort = new("AddedDate", "DESC");
+        sortOrder.Sort.Add(sort);
+
+        model = new()
+            {
+                availableOfferTypes = AvailableOfferTypes.SALE_AND_RENT,
+                availableEstateType = AvailableEstateType.ALL,
+                Paging = new()
+                {
+                    PageSize = pageSize,
+                    PageNumber = Page != null ? Page.Value : 1
+                },
+                SortOrder = sortOrder
+            };
+        isOwner();
+        isAgent();
+        agency = await _apiLogic.GetAgencyProfile(model, Int32.Parse(agencyId));
+        if (agency != null && agency.AgencyPhoneNumber != null)
+        {
+            phone = new string(agency.AgencyPhoneNumber.Take(3).ToArray()) + "...";
+        }
+        else if(agency == null)
+        {
+            agencyNotFound = true;
+            //agencji nie ma, wyświetl tylko info na całą stronę
+        }
+
+        StateHasChanged();
+        await base.OnInitializedAsync();
+    }
+
+    MatTheme theme = new()
+        {
+            Primary = "#4caf50",
+            Secondary = "#4caf50",
+            Surface = "#ffffff"
+        };
+        
+    MatTheme deleteTheme = new()
+        {
+            Primary = "#f23a3a",
+            Secondary = "#f23a3a",
+            Surface = "#ffffff"
+        };
+
+    MatTheme copyTheme = new MatTheme()
+    {
+        Primary = "#f3ba00",
+        Secondary = "#f3ba00"
+    };
+
+    #region Toaster
+    private bool _showProgressBar;
+    private bool _showCloseButton;
+    private bool _actionOnClick;
+    private string _maximumOpacity;
+
+    private string _showTransitionDuration;
+    private string _visibleStateDuration;
+    private string _hideTransitionDuration;
+    private bool _requireInteraction;
+    public string _maxDisplayedToasts
+    {
+        get { return Toaster.Configuration.MaxDisplayedToasts.ToString(); }
+        set { Toaster.Configuration.MaxDisplayedToasts = Convert.ToInt32(value); }
+    }
+    private string _toastPosition
+    {
+        get { return Toaster.Configuration.Position.ToString(); }
+        set { Toaster.Configuration.Position = (MatToastPosition)Enum.Parse(typeof(MatToastPosition), value); }
+    }
+
+    public void Show(MatToastType type, string message, string title, string icon = "")
+    {
+        Toaster.Add(message, type, title, icon, config =>
+        {
+            config.ShowCloseButton = _showCloseButton;
+            config.ShowProgressBar = _showProgressBar;
+            config.MaximumOpacity = Convert.ToInt32(_maximumOpacity);
+
+            config.ShowTransitionDuration = Convert.ToInt32(_showTransitionDuration);
+            config.VisibleStateDuration = Convert.ToInt32(_visibleStateDuration);
+            config.HideTransitionDuration = Convert.ToInt32(_hideTransitionDuration);
+
+            config.RequireInteraction = _requireInteraction;
+
+            if (_actionOnClick)
+            {
+                config.Onclick = toast =>
+                {
+                    return Task.CompletedTask;
+                };
+            }
+        });
+    }
+    #endregion
+}

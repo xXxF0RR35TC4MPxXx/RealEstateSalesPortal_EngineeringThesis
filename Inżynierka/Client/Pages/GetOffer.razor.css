@@ -1,0 +1,30 @@
+﻿#seller-text{
+    font-size:20px;
+    font-weight:bold;
+}
+
+
+#description {
+    min-height: 200px;
+    padding: 15px 20px;
+    text-align: justify;
+    
+}
+
+#description-text {
+    text-justify: inter-character;
+}
+
+
+#agencyInfo {
+    float: left;
+    width: 100%;
+    position: relative;
+}
+
+#title-bar{
+    margin-top:10px;
+    margin-bottom:10px;
+}
+
+

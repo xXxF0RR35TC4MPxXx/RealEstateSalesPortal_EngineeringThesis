@@ -1,0 +1,512 @@
+﻿@using Inżynierka.Shared.ViewModels.Offer.Update
+@using Inżynierka_Common.Enums
+@using Inżynierka_Common.Helpers
+@using Inżynierka.Client.Logics
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IJSRuntime JS
+@inject IApiLogic _apiLogic
+
+@if(apRentVm != null && sellerId!=null)
+{   
+    <AuthorizeView>
+        <NotAuthorized>
+        @{
+            NavManager.NavigateTo("/Auth/SignIn");
+        }
+    </NotAuthorized>
+    <Authorized>
+        @{
+            if (context.User.Claims.FirstOrDefault(x => x.Type == "UserId")?.Value != sellerId.ToString())
+            {
+                NavManager.NavigateTo("/homepage");
+            }
+        }
+    </Authorized>
+        
+    </AuthorizeView>
+        <EditForm Model="apRentVm" OnValidSubmit="Success">
+        <DataAnnotationsValidator />
+        <MatThemeProvider Theme="@theme">
+            <div class="mat-layout-grid">
+                <div class="mat-layout-grid-inner">
+
+                    <!-- page header -->
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-10">
+                        <p id="Create-title-bar">Edycja oferty wynajmu mieszkania</p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1"></div>
+
+                    <!-- offer title-->
+                    <CreateFormSplitter Text="Podstawowe informacje"></CreateFormSplitter>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+                        <p>
+                            <MatTextField Style="width:100%;" Label="Tytuł ogłoszenia" @bind-Value="apRentVm.OfferTitle" />
+                            <ValidationMessage For="@(() => apRentVm.OfferTitle)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                    <!-- offer row 1 (price, rent, area, roomCount)-->
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <p>
+                            <MatNumericUpDownField Label="Czynsz (zł)"
+                                               @bind-Value=@apRentVm.Price
+                                               Style="width:100%;"
+                                               DecimalPlaces=0>
+                            </MatNumericUpDownField>
+                            <ValidationMessage For="@(() => apRentVm.Price)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <p>
+                            <MatNumericUpDownField Label="Kaucja (zł)"
+                                               @bind-Value=@apRentVm.Rent
+                                               DecimalPlaces=0
+                                               Style="width:100%;">
+                            </MatNumericUpDownField>
+                            <ValidationMessage For="@(() => apRentVm.Rent)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <p>
+                            <MatNumericUpDownField Label="Powierzchnia (m²)"
+                                               @bind-Value=@apRentVm.Area
+                                               DecimalPlaces=0
+                                               Style="width:100%;">
+                            </MatNumericUpDownField>
+                            <ValidationMessage For="@(() => apRentVm.Area)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <p>
+                            <MatNumericUpDownField Label="Ilość pokoi"
+                                               @bind-Value=@apRentVm.RoomCount
+                                               Style="width:100%;"
+                                               DecimalPlaces=0>
+                            </MatNumericUpDownField>
+                            <ValidationMessage For="@(() => apRentVm.RoomCount)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                    <!-- address -->
+                    <CreateFormSplitter Text="Lokalizacja"></CreateFormSplitter>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatSelectValue Style="width:100%;" Label="Województwo" @bind-Value="@apRentVm.Voivodeship" Items="@voivodeships" ValueSelector="@(i=>i)">
+                            <ItemTemplate Context="thisContext">
+                                <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                            </ItemTemplate>
+                        </MatSelectValue>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <p>
+                            <MatTextField Style="width:100%;" Label="Miasto" @bind-Value="apRentVm.City" />
+                            <ValidationMessage For="@(() => apRentVm.City)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4">
+                        <p>
+                            <MatTextField Style="width:100%;" Label="Adres" @bind-Value="apRentVm.Address" />
+                            <ValidationMessage For="@(() => apRentVm.Address)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                    <!-- description textArea -->
+                    <CreateFormSplitter Text="Informacje szczegółowe"></CreateFormSplitter>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+                        <p>
+                            <MatTextField Style="width:100%;" @bind-Value="apRentVm.Description" Label="Opis" TextArea="true"></MatTextField>
+                            <ValidationMessage For="@(() => apRentVm.Description)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                    <!-- extra info #1 -->
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatSelectValue Style="width:100%;" Label="Rodzaj budynku" @bind-Value="@apRentVm.TypeOfBuilding" Items="@types" ValueSelector="@(i=>i)">
+                            <ItemTemplate Context="thisContext">
+                                <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                            </ItemTemplate>
+                        </MatSelectValue>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatSelectValue Style="width:100%;" Label="Piętro" @bind-Value="@apRentVm.Floor" Items="@floors" ValueSelector="@(i=>i)">
+                            <ItemTemplate Context="thisContext">
+                                <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                            </ItemTemplate>
+                        </MatSelectValue>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <p>
+                            <MatNumericUpDownField Label="Ilość pięter"
+                                               @bind-Value=@apRentVm.FloorCount
+                                               DecimalPlaces=0
+                                               Style="width:100%;">
+                            </MatNumericUpDownField>
+                            <ValidationMessage For="@(() => apRentVm.FloorCount)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatSelectValue Style="width:100%;" Label="Materiał budynku" @bind-Value="@apRentVm.BuildingMaterial" Items="@buildingMaterials" ValueSelector="@(i=>i)">
+                            <ItemTemplate Context="thisContext">
+                                <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                            </ItemTemplate>
+                        </MatSelectValue>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                    <!-- extra info #2 -->
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatSelectValue Style="width:100%;" Label="Rodzaj okien" @bind-Value="@apRentVm.WindowsType" Items="@windows" ValueSelector="@(i=>i)">
+                            <ItemTemplate Context="thisContext">
+                                <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                            </ItemTemplate>
+                        </MatSelectValue>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatSelectValue Style="width:100%;" Label="Rodzaj ogrzewania" @bind-Value="@apRentVm.HeatingType" Items="@heatingTypes" ValueSelector="@(i=>i)">
+                            <ItemTemplate Context="thisContext">
+                                <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                            </ItemTemplate>
+                        </MatSelectValue>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <p>
+                            <MatNumericUpDownField Label="Rok budowy"
+                                               @bind-Value=@apRentVm.YearOfConstruction
+                                               DecimalPlaces=0
+                                               Style="width:100%;">
+                            </MatNumericUpDownField>
+                            <ValidationMessage For="@(() => apRentVm.YearOfConstruction)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatSelectValue Style="width:100%;" Label="Stan wykończenia" @bind-Value="@apRentVm.FinishCondition" Items="@finishConditions" ValueSelector="@(i=>i)">
+                            <ItemTemplate Context="thisContext">
+                                <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                            </ItemTemplate>
+                        </MatSelectValue>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                    <!-- extra info #3 -->
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <p>
+                            <MatTextField Style="width:100%;" Label="Dostępne od" @bind-Value="apRentVm.AvailableSinceDate" />
+                            <ValidationMessage For="@(() => apRentVm.AvailableSinceDate)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.AvailableForStudents" Indeterminate="true">Dostępne też dla studentów</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.AvailableForStudents = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                    <!-- equipment -->
+                    <CreateFormSplitter Text="Wyposażenie"></CreateFormSplitter>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.Furniture" Indeterminate="true">Meble</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.Furniture = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.WashingMachine" Indeterminate="true">Pralka</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.WashingMachine = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.Dishwasher" Indeterminate="true">Zmywarka</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.Dishwasher= null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.Fridge" Indeterminate="true">Lodówka</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.Fridge = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.Stove" Indeterminate="true">Kuchenka</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.Stove = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.Oven" Indeterminate="true">Piekarnik</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.Oven = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.TV" Indeterminate="true">Telewizor</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.TV = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4"></div>
+
+                    <!-- security -->
+                    <CreateFormSplitter Text="Zabezpieczenia"></CreateFormSplitter>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.AntiBurglaryBlinds" Indeterminate="true">Rolety antywłamaniowe</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.AntiBurglaryBlinds = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.AntiBurglaryWindowsOrDoors" Indeterminate="true">Drzwi lub okna antywłamaniowe</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.AntiBurglaryWindowsOrDoors = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.IntercomOrVideophone" Indeterminate="true">Domofon lub wideofon</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.IntercomOrVideophone = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1"></div>
+
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.MonitoringOrSecurity" Indeterminate="true">Monitoring lub ochrona</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.MonitoringOrSecurity = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.AlarmSystem" Indeterminate="true">System alarmowy</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.AlarmSystem = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.ClosedArea" Indeterminate="true">Teren zamknięty</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.ClosedArea = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1"></div>
+
+                    <!-- media -->
+                    <CreateFormSplitter Text="Media"></CreateFormSplitter>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.Internet" Indeterminate="true">Internet</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.Internet = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.CableTV" Indeterminate="true">Telewizja kablowa</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.CableTV = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.HomePhone" Indeterminate="true">Telefon</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.HomePhone = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1"></div>
+
+
+                    <!-- extra info -->
+                    <CreateFormSplitter Text="Informacje dodatkowe"></CreateFormSplitter>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.Balcony" Indeterminate="true">Balkon</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.Balcony = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.UtilityRoom" Indeterminate="true">Pomieszczenie użytkowe</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.UtilityRoom = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.ParkingSpace" Indeterminate="true">Miejsce parkingowe</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.ParkingSpace= null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.Basement" Indeterminate="true">Piwnica</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.Basement = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.Garden" Indeterminate="true">Ogród</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.Garden = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.Terrace" Indeterminate="true">Taras</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.Terrace = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.Elevator" Indeterminate="true">Winda</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.Elevator= null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.TwoLevel" Indeterminate="true">Dwupoziomowe</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.TwoLevel = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.SeparateKitchen" Indeterminate="true">Oddzielna kuchnia</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.SeparateKitchen = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.AirConditioning" Indeterminate="true">Klimatyzacja</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.AirConditioning = null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.OnlyForNonsmoking" Indeterminate="true">Tylko dla niepalących</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.OnlyForNonsmoking= null;
+                                 })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@apRentVm.RemoteControl" Indeterminate="true">Obsługa zdalna</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+                                 {
+                                     apRentVm.RemoteControl = null;
+                                 })">Wyczyść</MatButton></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                    <!-- submit button -->
+                    <CreateFormSplitter Text=""></CreateFormSplitter>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatSelectValue Style="width:100%;" Label="Status oferty" @bind-Value="@apRentVm.OfferStatus" Items="@offerStatuses" ValueSelector="@(i=>i)">
+                            <ItemTemplate Context="thisContext">
+                                <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                            </ItemTemplate>
+                        </MatSelectValue>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatButton Disabled="@submitDisabled" Style="width: 100%;" Type="submit" Raised="true">Edytuj ofertę</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                </div>
+            </div>
+        </MatThemeProvider>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public string OfferId { get; set; }
+
+    public ApartmentRentOfferUpdateViewModel? apRentVm { get; set; }
+    public TypeOfBuilding[] types = Enum.GetValues(typeof(TypeOfBuilding)).Cast<TypeOfBuilding>().ToArray();
+    public Floor[] floors = Enum.GetValues(typeof(Floor)).Cast<Floor>().ToArray();
+    public BuildingMaterial[] buildingMaterials = Enum.GetValues(typeof(BuildingMaterial)).Cast<BuildingMaterial>().ToArray();
+    public WindowType[] windows = Enum.GetValues(typeof(WindowType)).Cast<WindowType>().ToArray();
+    public ApartmentHeating[] heatingTypes = Enum.GetValues(typeof(ApartmentHeating)).Cast<ApartmentHeating>().ToArray();
+    public ApartmentFinishCondition[] finishConditions = Enum.GetValues(typeof(ApartmentFinishCondition)).Cast<ApartmentFinishCondition>().ToArray();
+    public Voivodeships[] voivodeships = Enum.GetValues(typeof(Voivodeships)).Cast<Voivodeships>().ToArray();
+    public OfferStatus[] offerStatuses = Enum.GetValues(typeof(OfferStatus)).Cast<OfferStatus>().ToArray();
+    public bool submitDisabled = false;
+    
+    public async void Success()
+    {
+        var message = await _apiLogic.UpdateApartmentRentOffer(apRentVm, int.Parse(OfferId));
+        if (message == "Success")
+        {
+            NavManager.NavigateTo($"/Offer/{OfferId}");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("window.alert", "Podczas edycji oferty wystąpił błąd. Spróbuj ponownie później!");
+        }
+    }
+
+    int? sellerId;
+    protected override async Task OnInitializedAsync()
+    {
+        await JS.InvokeVoidAsync("window.scrollTo", new int[] { 0, 1 });
+        sellerId = await Http.GetFromJsonAsync<int>($"OfferController/GetOwner/{int.Parse(OfferId)}");
+        apRentVm = await Http.GetFromJsonAsync<ApartmentRentOfferUpdateViewModel?>($"OfferController/GetUpdateViewModel/{int.Parse(OfferId)}");
+    }
+
+    MatTheme theme = new()
+        {
+            Primary = "#4caf50",
+            Secondary = "#4caf50",
+            Surface = "#ffffff"
+        };
+}

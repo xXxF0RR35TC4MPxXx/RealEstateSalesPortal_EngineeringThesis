@@ -1,0 +1,134 @@
+﻿@using Inżynierka_Common.Enums
+@using Inżynierka_Common.Helpers
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">@Title</h4>
+                <MatButton type="button" class="close" @onclick="@ModalCancel">&times;</MatButton>
+            </div>
+            <div class="modal-body">
+                <p>@Text</p>
+            </div>
+            <div class="modal-footer">
+                <MatThemeProvider Theme="@theme">
+                    @switch (DialogType)
+                    {
+                        case OfferType.ApartmentSale:
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.APARTMENT_SALE_WITH_DEPOSIT_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.APARTMENT_SALE_WITH_DEPOSIT_CONTRACT)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.APARTMENT_SALE_WITH_ADVANCE_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.APARTMENT_SALE_WITH_ADVANCE_CONTRACT)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%; height: 8vh;" @onclick=@(()=>ModalOk(ContractTypes.APARTMENT_SALE_WITH_COOPERATIVE_OWNERSHIP_RIGHT_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.APARTMENT_SALE_WITH_COOPERATIVE_OWNERSHIP_RIGHT_CONTRACT)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_SALE))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_SALE)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.ESTATE_SALE_MEDIATION_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.ESTATE_SALE_MEDIATION_CONTRACT)</MatButton>
+
+                            break;
+                        case OfferType.ApartmentRent:
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.APARTMENT_RENT_FOR_INDEFINITE_PERIOD))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.APARTMENT_RENT_FOR_INDEFINITE_PERIOD)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_RENT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_RENT)</MatButton>
+                            break;
+                        case OfferType.HouseSale:
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.HOUSE_SALE_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.HOUSE_SALE_CONTRACT)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_SALE))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_SALE)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.ESTATE_SALE_MEDIATION_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.ESTATE_SALE_MEDIATION_CONTRACT)</MatButton>
+                            break;
+                        case OfferType.HouseRent:
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.HOUSE_RENT_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.HOUSE_RENT_CONTRACT)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_RENT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_RENT)</MatButton>
+                            break;
+                        case OfferType.GarageSale:
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.GARAGE_SALE_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.GARAGE_SALE_CONTRACT)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_SALE))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_SALE)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.ESTATE_SALE_MEDIATION_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.ESTATE_SALE_MEDIATION_CONTRACT)</MatButton>
+                            break;
+                        case OfferType.GarageRent:
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.GARAGE_RENT_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.GARAGE_RENT_CONTRACT)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_RENT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_RENT)</MatButton>
+                            break;
+                        case OfferType.PremisesSale:
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.PREMISES_SALE_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.PREMISES_SALE_CONTRACT)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_SALE))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_SALE)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.ESTATE_SALE_MEDIATION_CONTRACT
+                               ))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.ESTATE_SALE_MEDIATION_CONTRACT)</MatButton>
+                            break;
+                        case OfferType.PremisesRent:
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.PREMISES_RENT_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.PREMISES_RENT_CONTRACT)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_RENT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_RENT)</MatButton>
+                            break;
+                        case OfferType.HallSale:
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.HALL_SALE_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.HALL_SALE_CONTRACT)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_SALE))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_SALE)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.ESTATE_SALE_MEDIATION_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.ESTATE_SALE_MEDIATION_CONTRACT)</MatButton>
+                            break;
+                        case OfferType.HallRent:
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.HALL_RENT_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.HALL_RENT_CONTRACT)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_RENT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_RENT)</MatButton>
+                            break;
+                        case OfferType.RoomRent:
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.ROOM_RENT_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.ROOM_RENT_CONTRACT)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_RENT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_RENT)</MatButton>
+                            break;
+                        case OfferType.PlotSale:
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.PLOT_SALE_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.PLOT_SALE_CONTRACT)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_SALE))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_SALE)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.ESTATE_SALE_MEDIATION_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.ESTATE_SALE_MEDIATION_CONTRACT)</MatButton>
+                            break;
+                        case OfferType.PlotRent:
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.PLOT_RENT_CONTRACT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.PLOT_RENT_CONTRACT)</MatButton>
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@(()=>ModalOk(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_RENT))>@EnumHelper.GetDescriptionFromEnum(ContractTypes.DELIVERY_AND_ACCEPTANCE_REPORT_FOR_RENT)</MatButton>
+                            break;
+                    }
+                </MatThemeProvider>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    MatTheme theme = new MatTheme()
+        {
+            Primary = "green",
+            Background = "green",
+            OnPrimary = "white",
+        };
+
+    public enum OfferType
+    {
+        ApartmentSale,
+        ApartmentRent,
+        HouseSale,
+        HouseRent,
+        GarageSale,
+        GarageRent,
+        PremisesSale,
+        PremisesRent,
+        HallSale,
+        HallRent,
+        PlotRent,
+        PlotSale,
+        RoomRent,
+        Unknown
+    }
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public string Text { get; set; }
+
+    [Parameter]
+    public EventCallback<ContractTypes?> OnClose { get; set; }
+
+    [Parameter]
+    public OfferType DialogType { get; set; }
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(null);
+    }
+
+    private Task ModalOk(ContractTypes param)
+    {
+        return OnClose.InvokeAsync(param);
+    }
+
+}

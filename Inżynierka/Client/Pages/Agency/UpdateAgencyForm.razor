@@ -1,0 +1,271 @@
+﻿@page "/Agency/{agencyId}/Update/"
+<PageTitle>Edytuj dane agencji- BuyDom.pl</PageTitle>
+@using Inżynierka.Client.Logics;
+@using Inżynierka.Shared.ViewModels.Agency;
+@using Inżynierka.Shared.ViewModels.User;
+@using Inżynierka_Common.Helpers;
+@using Newtonsoft.Json;
+@inject NavigationManager NavManager
+@inject IJSRuntime JsRuntime
+@inject IApiLogic _apiLogic
+@inject HttpClient Http
+<BlazorStyled.Styled>
+    #Create-title-bar
+    {
+    font-size: 24px;
+    font-family: "Open Sans", sans-serif;
+    font-weight: bold;
+    }
+
+    .small-text
+    {
+        color: gray;
+        font-size: 13px;
+        text-align: left;
+    margin-bottom: 0px;
+    }
+</BlazorStyled.Styled>
+<AuthorizeView>
+    <NotAuthorized>
+        @{
+            NavManager.NavigateTo("/Auth/SignIn");
+        }
+    </NotAuthorized>
+    <Authorized>
+        @{
+            SetUserId(context.User.Claims.FirstOrDefault(x => x.Type == "UserId")?.Value);
+        }
+    </Authorized>
+</AuthorizeView>
+@if(myModel!=null)
+{
+    <EditForm Model="myModel" OnValidSubmit="Success">
+        <DataAnnotationsValidator />
+        <MatThemeProvider Theme="@theme">
+            <div class="mat-layout-grid">
+                <div class="mat-layout-grid-inner">
+                    <!-- page header -->
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-10">
+                        <p id="Create-title-bar">Edycja danych agencji</p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1"></div>
+
+                    <!-- user name -->
+                    <CreateFormSplitter Text="Nazwa i kontakt" />
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-5">
+                        <p>
+                            <MatTextField Style="width:100%;" Label="Nazwa agencji" @bind-Value="myModel.AgencyName" />
+                            <ValidationMessage For="@(() => myModel.AgencyName)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                        <p>
+                            <MatTextField Style="width:100%;" Label="Numer telefonu" @bind-Value="myModel.PhoneNumber" />
+                            <ValidationMessage For="@(() => myModel.PhoneNumber)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                    <CreateFormSplitter Text="Adres" />
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+                        <p class="small-text">Adres nie będzie widoczny dla innych użytkowników. Jest on używany wyłącznie do generowania umów.</p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <p>
+                            <MatTextField Style="width:100%;" Label="Kod pocztowy" @bind-Value="myModel.PostalCode" />
+                            <ValidationMessage For="@(() => myModel.PostalCode)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                        <p>
+                            <MatTextField Style="width:100%;" Label="Miasto" @bind-Value="myModel.City" />
+                            <ValidationMessage For="@(() => myModel.City)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3">
+                        <p>
+                            <MatTextField Style="width:100%;" Label="Adres" @bind-Value="myModel.Address" />
+                            <ValidationMessage For="@(() => myModel.Address)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                    <CreateFormSplitter Text="Opis" />
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+                        <p>
+                            <MatTextField Style="width:100%;" @bind-Value="myModel.Description" Label="Opis" TextArea="true"></MatTextField>
+                            <ValidationMessage For="@(() => myModel.Description)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                    <CreateFormSplitter Text="Dodaj/zmień logo" />
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+                        <MatFileUpload OnChange="@FileReady" Label="@fileUploadText"></MatFileUpload>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+
+                    <!-- submit button -->
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8"></div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatButton Disabled="@submitDisabled" Style="width: 100%;" Type="submit" Raised="true">Edytuj dane</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"></div>
+                </div>
+            </div>
+        </MatThemeProvider>
+    </EditForm>
+
+}
+
+@code {
+
+    [Parameter]
+    public string? agencyId { get; set; }
+
+    public bool isLoading = true;
+    public bool submitDisabled = false;
+    public AgencyUpdateViewModel? myModel;
+    public string imageInBase64 = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = false;
+    }
+
+    public async Task Success()
+    {
+        if(submitDisabled == false && myModel != null)
+        {
+            myModel.Logo = imageInBase64;
+            var message = await _apiLogic.UpdateAgency(myModel, Int32.Parse(agencyId));
+            if (message == "Success")
+            {
+                NavManager.NavigateTo($"/Agency/{agencyId}", true);
+            }
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("window.alert", "Podczas aktualizacji danych wystąpił błąd. Spróbuj ponownie później!");
+            }
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync("window.alert", "Ładnie to tak próbować wcisnąć fałszywy plik? 😉");
+        }
+
+    }
+
+    public int? userId;
+    public bool firstTime = true;
+    private async void SetUserId(string id)
+    {
+        if (firstTime)
+        {
+            userId = Int32.Parse(id);
+            var response = await Http.GetAsync($"AgencyController/CheckIfOwner/{userId}/{agencyId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                await JsRuntime.InvokeVoidAsync("console.log", $"id: {id}");
+                
+                if (userId != null)
+                {
+                    myModel = await Http.GetFromJsonAsync<AgencyUpdateViewModel?>($"AgencyController/GetUpdateViewModel/");
+                }
+                firstTime = false;
+                isLoading = false;
+                StateHasChanged();
+            }
+            else
+            {
+                NavManager.NavigateTo($"/Agency/{agencyId}", true);
+            }
+            //sprawdzić here czy jestem ownerem tej agencji
+
+            
+        }
+    }
+
+    MatTheme theme = new()
+        {
+            Primary = "#4caf50",
+            Secondary = "#4caf50",
+            Surface = "#ffffff"
+        };
+
+    public static int maxMb = 1;
+    public static int maxFileSizeAllowed = 1024 * 1024 * maxMb;
+    public string fileUploadText = $"Przenieś zdjęcie tutaj lub Szukaj na dysku (max. rozmiar - {maxMb}MB)";
+    public string errorMessage = "";
+    #region PhotoLogic
+    //validates the photos extension, size and count and converts them into base64 strings
+    public async Task FileReady(IMatFileUploadEntry[] files)
+    {
+        imageInBase64 = "";
+        if (files.Any(f => !f.Name.EndsWith(".png") && !f.Name.EndsWith(".jpeg") && !f.Name.EndsWith(".jpg")))
+        {
+            fileUploadText = $"Przenieś zdjęcie tutaj lub Szukaj na dysku - wspierane są wyłącznie pliki o rozszerzeniu .jpg oraz .png)";
+            submitDisabled = true;
+            return;
+        }
+        if (files.Any(f => f.Size > maxFileSizeAllowed))
+        {
+            fileUploadText = $"Przenieś zdjęcie tutaj lub Szukaj na dysku - zdjęcie ma zbyt duży rozmiar! (max. {maxMb}MB)";
+            submitDisabled = true;
+            return;
+        }
+
+        try
+        {
+            foreach (var file in files)
+            {
+                if (file == null)
+                {
+                    return;
+                }
+
+                using (var stream = new MemoryStream())
+                {
+                    await file.WriteToStreamAsync(stream);
+                    byte[] somBytes = GetBytes(stream);
+                    byte[] headerBytes = somBytes.Take(4).ToArray();
+
+                    if(FileExtensionValidationHelper.ValidateIfCorrectPhotoFormat(headerBytes))
+                    {
+                        string base64String = Convert.ToBase64String(somBytes, 0, somBytes.Length);
+                        fileUploadText = $"Przenieś zdjęcie tutaj lub Szukaj na dysku - wczytano (100%)";
+                        imageInBase64 = base64String;
+                    }
+                    else
+                    {
+                        submitDisabled = true;
+                        fileUploadText = $"Przenieś zdjęcie tutaj lub Szukaj na dysku - plik jest uszkodzony lub jest nieobsługiwanym zdjęciem";
+                        return;
+                    }
+                   
+                }
+            }
+        }
+        catch (Exception e)
+        { }
+    }
+
+    public static byte[] GetBytes(Stream stream)
+    {
+        var bytes = new byte[stream.Length];
+        stream.Seek(0, SeekOrigin.Begin);
+        stream.ReadAsync(bytes, 0, bytes.Length);
+        stream.Dispose();
+        return bytes;
+    }
+
+    #endregion
+}

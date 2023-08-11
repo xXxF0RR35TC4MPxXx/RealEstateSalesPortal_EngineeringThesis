@@ -1,0 +1,112 @@
+﻿@page "/User/Events"
+<PageTitle>Twój terminarz - BuyDom.pl</PageTitle>
+@using Inżynierka.Client.Logics;
+@using Inżynierka.Shared.DTOs.User;
+@inject IApiLogic _apiLogic
+@inject NavigationManager NavManager
+@inject DialogService DialogService
+<BlazorStyled.Styled>
+    .fav-title-bar
+    {
+        font-size: 24px;
+        font-family: "Open Sans", sans-serif;
+        font-weight: bold;
+    }
+</BlazorStyled.Styled>
+<SpinLoader IsLoading="isLoading">
+    <LoadingTemplate>
+        <LoadingScreen Text="Trwa otwieranie terminarza..."/>
+    </LoadingTemplate>
+    <ContentTemplate>
+        <AuthorizeView>
+            <NotAuthorized>
+                @{
+                    if (context.User == null || context.User.Identity == null || !context.User.Identity.IsAuthenticated)
+                    {
+                        NavManager.NavigateTo("/Auth/SignIn");
+                    }
+                }
+            </NotAuthorized>
+            <Authorized>
+                @{SetUserId(context.User.Claims.FirstOrDefault(x => x.Type == "UserId")?.Value);}
+                <div class="mat-layout-grid">
+                    <div class="mat-layout-grid-inner">
+
+                        <UserPageInfo viewerId=@userId.ToString() userId="@userId.ToString()" />
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">
+                            <RadzenScheduler @ref=@scheduler SlotRender=@OnSlotRender style="height: 630px;" TItem="ReadEventDTO" Data=@events StartProperty="DeadlineDate" EndProperty="EndDate"
+                                             TextProperty="EventName" SelectedIndex="2" TodayText="Dzisiaj"
+                                             SlotSelect=@OnSlotSelect AppointmentSelect=@OnAppointmentSelect AppointmentRender=@OnAppointmentRender>
+                                <RadzenDayView Text="Dzień" />
+                                <RadzenWeekView Text="Tydzień" />
+                                <RadzenMonthView Text="Miesiąc" />
+                                <RadzenYearView Text="Rok" />
+                            </RadzenScheduler>
+                        </div>
+                        <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+                    </div>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </ContentTemplate>
+</SpinLoader>
+@code {
+    public bool isLoading = true;
+
+    public IEnumerable<ReadEventDTO>? events;
+
+    public int? userId;
+    private async void SetUserId(string id)
+    {
+        userId = Int32.Parse(id);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        events = await _apiLogic.GetUserEvents();
+        isLoading = false;
+        await base.OnInitializedAsync();
+    }
+
+
+
+    #region Scheduler
+    void OnSlotRender(SchedulerSlotRenderEventArgs args)
+    {
+        // Highlight today in month view
+        if (args.View.Text == "Miesiąc" && args.Start.Date == DateTime.Today)
+        {
+            args.Attributes["style"] = "background: rgba(255,220,40,.2);";
+        }
+
+        // Highlight working hours (8-17)
+        if ((args.View.Text == "Tydzień" || args.View.Text == "Dzień") && args.Start.Hour > 7 && args.Start.Hour < 18)
+        {
+            args.Attributes["style"] = "background: rgba(255,220,40,.2);";
+        }
+    }
+
+    async Task OnSlotSelect(SchedulerSlotSelectEventArgs args)
+    {
+
+        if (args.View.Text != "Rok")
+        {
+            //to odpala się po kliknięciu w puste miejsce dnia
+            //tutaj otwórz modal tworzenia eventu
+            await DialogService.OpenAsync<AddEvent>("Dodaj zdarzenie", new Dictionary<string, object> {{ "Date", args.Start }});
+        }
+    }
+    RadzenScheduler<ReadEventDTO> scheduler;
+
+    async Task OnAppointmentSelect(SchedulerAppointmentSelectEventArgs<ReadEventDTO> args)
+    {
+        //po kliknięciu w istniejący event
+        //wyświetl modal z formularzem edycji wybranego eventu
+        await DialogService.OpenAsync<EditEvent>("Edytuj zdarzenie", new Dictionary<string, object> { { "Id", args.Data.Id }, {"offerId", args.Data.OfferId} });
+    }
+
+    void OnAppointmentRender(SchedulerAppointmentRenderEventArgs<ReadEventDTO> args)
+    {}
+    #endregion
+}

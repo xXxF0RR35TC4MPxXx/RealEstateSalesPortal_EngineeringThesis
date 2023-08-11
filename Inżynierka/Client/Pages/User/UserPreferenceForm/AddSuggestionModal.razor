@@ -1,0 +1,96 @@
+﻿@using Inżynierka.Client.Logics;
+@using Inżynierka.Shared.ViewModels.UserPreferenceForm;
+@using Inżynierka_Common.Enums
+@using Inżynierka_Common.Helpers
+@using System.ComponentModel.DataAnnotations;
+@inject IApiLogic _apiLogic
+@inject IJSRuntime JS
+<BlazorStyled.Styled>
+
+    .mdc-select__native-control {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    }
+
+    .mdc-select__menu{ z-index: 2090 !important; }
+</BlazorStyled.Styled>
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <MatThemeProvider Theme="@theme">
+                <div class="modal-header">
+                    <h4 class="modal-title">Dodawanie propozycji nieruchomości</h4>
+                    <MatButton type="button" class="close" @onclick="@ModalCancel">&times;</MatButton>
+                </div>
+                <EditForm Model="@model" OnValidSubmit="@(()=>AddSuggestion())">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body">
+                        <div class="mat-layout-grid">
+                            <div class="mat-layout-grid-inner">
+                                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12">
+                                    <h4>Dodajesz ofertę do listy propozycji:</h4>
+                                </div>
+                                
+                                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3"/>
+                                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-6">
+                                    <p>
+                                        <MatNumericUpDownField Label="Identyfikator oferty"
+                                                               @bind-Value=@model.OfferId
+                                                               Style="width:100%;"
+                                                               DecimalPlaces=0>
+                                        </MatNumericUpDownField>
+                                        <ValidationMessage For="@(() => model.OfferId)" />
+                                    </p>
+                                </div>
+                                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-3" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <MatButton Type="submit" Unelevated="true" style="width:48.25%; position:relative;"><i style="position: absolute;left: 10px;top: 12px;"></i>Dodaj</MatButton>
+                    </div>
+                </EditForm>
+            </MatThemeProvider>
+        </div>
+    </div>
+</div>
+
+@code {
+
+
+    MatTheme theme = new MatTheme()
+        {
+            Primary = "green",
+            Background = "green",
+            OnPrimary = "white",
+        };
+
+    public AddNewSuggestionViewModel model = new();
+
+    [Parameter]
+    public int? FormId { get; set; }
+    [Parameter]
+    public EventCallback<string?> OnClose { get; set; }
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(null);
+    }
+    string message = "";
+
+    public async Task AddSuggestion()
+    {
+        if(model!=null && model.OfferId!=null && FormId!=null)
+        {
+            var result = await _apiLogic.AddFormSuggestion(model.OfferId.Value, FormId.Value);
+            await ModalOk(result);
+            
+        }
+    }
+
+    private Task ModalOk(string? param)
+    {
+        return OnClose.InvokeAsync(param);
+    }
+
+}

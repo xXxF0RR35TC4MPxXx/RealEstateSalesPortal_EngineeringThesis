@@ -1,0 +1,77 @@
+﻿@using Inżynierka_Common.Enums
+@using Inżynierka_Common.Helpers
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">@Title</h4>
+                <MatButton type="button" class="close" @onclick="@ModalCancel">&times;</MatButton>
+            </div>
+            <div class="modal-body">
+                <p>@Text</p>
+            </div>
+            <div class="modal-footer">
+                <MatThemeProvider Theme="@theme">
+                    <MatButton Unelevated="true" style="width:48.25%; position:relative;" @onclick=@(()=>ModalOk(NewOfferType.ApartmentRent))><i style="position: absolute;left: 10px;top: 12px;" class="fa-solid fa-building"></i>&nbsp;Wynajem mieszkania</MatButton>
+                    <MatButton Unelevated="true" style="width:48.25%;" @onclick=@(()=>ModalOk(NewOfferType.ApartmentSale))><i style="position: absolute;left: 10px;top: 12px;" class="fa-solid fa-building"></i>&nbsp;Sprzedaż mieszkania</MatButton>
+                    <MatButton Unelevated="true" style="width:48.25%;" @onclick=@(()=>ModalOk(NewOfferType.HouseRent))><i style="position: absolute;left: 10px;top: 12px;" class="fa-solid fa-house"></i>&nbsp;Wynajem domu</MatButton>
+                    <MatButton Unelevated="true" style="width:48.25%;" @onclick=@(()=>ModalOk(NewOfferType.HouseSale))><i style="position: absolute;left: 10px;top: 12px;" class="fa-solid fa-house"></i>&nbsp;Sprzedaż domu</MatButton>
+                    <MatButton Unelevated="true" style="width:48.25%;" @onclick=@(()=>ModalOk(NewOfferType.GarageRent))><i style="position: absolute;left: 10px;top: 12px;" class="fa-solid fa-car-tunnel"></i>&nbsp;Wynajem garażu</MatButton>
+                    <MatButton Unelevated="true" style="width:48.25%;" @onclick=@(()=>ModalOk(NewOfferType.GarageSale))><i style="position: absolute;left: 10px;top: 12px;" class="fa-solid fa-car-tunnel"></i>&nbsp;Sprzedaż garażu</MatButton>
+                    <MatButton Unelevated="true" style="width:48.25%; height:8vh;" @onclick=@(()=>ModalOk(NewOfferType.PremisesRent))><i style="position: absolute;left: 10px;top: 40%;" class="fa-solid fa-store"></i>&nbsp;Wynajem lokalu biznesowego</MatButton>
+                    <MatButton Unelevated="true" style="width:48.25%; height:8vh;" @onclick=@(()=>ModalOk(NewOfferType.PremisesSale))><i style="position: absolute;left: 10px;top: 40%;" class="fa-solid fa-store"></i>&nbsp;Sprzedaż lokalu biznesowego</MatButton>
+                    <MatButton Unelevated="true" style="width:48.25%;" @onclick=@(()=>ModalOk(NewOfferType.HallRent))><i style="position: absolute;left: 10px;top: 12px;" class="fa-solid fa-warehouse"></i>&nbsp;Wynajem hali</MatButton>
+                    <MatButton Unelevated="true" style="width:48.25%;" @onclick=@(()=>ModalOk(NewOfferType.HallSale))><i style="position: absolute;left: 10px;top: 12px;" class="fa-solid fa-warehouse"></i>&nbsp;Sprzedaż hali</MatButton>
+                    <MatButton Unelevated="true" style="width:48.25%;" @onclick=@(()=>ModalOk(NewOfferType.RoomRent))><i style="position: absolute;left: 10px;top: 12px;" class="fa-solid fa-couch"></i>&nbsp;Wynajem pokoju</MatButton>
+                    <MatButton Unelevated="true" style="width:48.25%;" @onclick=@(()=>ModalOk(NewOfferType.Plot))><i style="position: absolute;left: 10px;top: 12px;" class="fa-solid fa-tree"></i>&nbsp;Oferta działki</MatButton>
+                </MatThemeProvider>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    MatTheme theme = new MatTheme()
+        {
+            Primary = "green",
+            Background = "green",
+            OnPrimary = "white",
+        };
+
+    public enum NewOfferType
+    {
+        ApartmentSale,
+        ApartmentRent,
+        HouseSale,
+        HouseRent,
+        GarageSale,
+        GarageRent,
+        PremisesSale,
+        PremisesRent,
+        HallSale,
+        HallRent,
+        Plot,
+        RoomRent,
+        Unknown
+    }
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public string Text { get; set; }
+
+    [Parameter]
+    public EventCallback<NewOfferType?> OnClose { get; set; }
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(null);
+    }
+
+    private Task ModalOk(NewOfferType param)
+    {
+        return OnClose.InvokeAsync(param);
+    }
+
+}

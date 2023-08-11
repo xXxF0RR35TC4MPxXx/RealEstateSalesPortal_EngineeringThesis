@@ -1,0 +1,165 @@
+﻿@using Inżynierka.Client.Logics;
+@using Inżynierka.Shared.ViewModels.UserPreferenceForm;
+@using Inżynierka_Common.Enums
+@using Inżynierka_Common.Helpers
+@inject IApiLogic _apiLogic
+<BlazorStyled.Styled>
+
+    .mdc-select__native-control {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    }
+
+    .mdc-select__menu{ z-index: 2090 !important; }
+</BlazorStyled.Styled>
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <MatThemeProvider Theme="@theme">
+                <div class="modal-header">
+                    <h4 class="modal-title">Formularz preferencji nieruchomości</h4>
+                    <MatButton type="button" class="close" @onclick="@ModalCancel">&times;</MatButton>
+                </div>
+                <EditForm Model="@model" OnValidSubmit="@(()=>SubmitForm())">
+                    <DataAnnotationsValidator />
+                    <div class="modal-body" style="text-align: justify;">
+                        Nie znajdujesz odpowiednich ofert nieruchomości? Przekaż swoje preferencje w poniższym formularzu, a nasi agenci znajdą je za Ciebie!
+                    </div>
+                    <div class="modal-body">
+                        <div class="mat-layout-grid">
+                            <div class="mat-layout-grid-inner">
+                                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12">
+                                    <h4>Twoje preferencje:</h4>
+                                </div>
+                                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12">
+                                    <p>
+                                        <MatTextField Style="width:100%;" Label="Miasto" @bind-Value="model.City" />
+                                        <ValidationMessage For="@(() => model.City)" />
+                                    </p>
+                                </div>
+
+                                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-6">
+                                    <MatSelectValue Style="width:100%;" Label="Typ nieruchomości" @bind-Value="@model.EstateType" Items="@estateTypes" ValueSelector="@(i=>i)">
+                                        <ItemTemplate Context="thisContext">
+                                            <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                                        </ItemTemplate>
+                                    </MatSelectValue>
+                                </div>
+                                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-6">
+                                    <MatSelectValue Style="width:100%;" Label="Typ oferty" @bind-Value="@model.OfferType" Items="@offerTypes" ValueSelector="@(i=>i)">
+                                        <ItemTemplate Context="thisContext">
+                                            <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                                        </ItemTemplate>
+                                    </MatSelectValue>
+                                </div>
+
+                                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-6">
+                                    <p>
+                                        <MatNumericUpDownField Label="Powierzchnia min."
+                                                               @bind-Value=@model.MinArea
+                                                               Style="width:100%;"
+                                                               DecimalPlaces=0>
+                                        </MatNumericUpDownField>
+                                        <ValidationMessage For="@(() => model.MinArea)" />
+                                    </p>
+                                </div>
+                                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-6">
+                                    <p>
+                                        <MatNumericUpDownField Label="Powierzchnia max."
+                                                               @bind-Value=@model.MaxArea
+                                                               Style="width:100%;"
+                                                               DecimalPlaces=0>
+                                        </MatNumericUpDownField>
+                                        <ValidationMessage For="@(() => model.MaxArea)" />
+                                    </p>
+                                </div>
+                                
+                                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-6">
+                                    <p>
+                                        <MatNumericUpDownField Label="Cena max."
+                                                               @bind-Value=@model.MaxPrice
+                                                               Style="width:100%;"
+                                                               DecimalPlaces=0>
+                                        </MatNumericUpDownField>
+                                        <ValidationMessage For="@(() => model.MaxPrice)" />
+                                    </p>
+                                </div>
+                                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-6">
+                                    <p>
+                                        <MatNumericUpDownField Label="Liczba pokoi"
+                                                               @bind-Value=@model.RoomCount
+                                                               Style="width:100%;"
+                                                               DecimalPlaces=0>
+                                        </MatNumericUpDownField>
+                                        <ValidationMessage For="@(() => model.RoomCount)" />
+                                    </p>
+                                </div>
+
+                                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-12">
+                                    <h4>Twoje dane kontaktowe:</h4>
+                                </div>
+                                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-6">
+                                    <p>
+                                        <MatTextField Style="width:100%;" Label="Numer telefonu" @bind-Value="model.ClientPhone" />
+                                        <ValidationMessage For="@(() => model.ClientPhone)" />
+                                    </p>
+                                </div>
+                                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-6">
+                                    <p>
+                                        <MatTextField Style="width:100%;" Label="Adres email" @bind-Value="model.ClientEmail" />
+                                        <ValidationMessage For="@(() => model.ClientEmail)" />
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <MatButton Type="submit" Unelevated="true" style="width:48.25%; position:relative;"><i style="position: absolute;left: 10px;top: 12px;"></i>Wyślij</MatButton>
+                    </div>
+                </EditForm>
+            </MatThemeProvider>
+        </div>
+    </div>
+</div>
+
+@code {
+    UserPreferenceFormCreateViewModel model = new();
+    public EstateType[] estateTypes = Enum.GetValues(typeof(EstateType)).Cast<EstateType>().ToArray();
+    public OfferType[] offerTypes = Enum.GetValues(typeof(OfferType)).Cast<OfferType>().ToArray();
+
+    MatTheme theme = new MatTheme()
+        {
+            Primary = "green",
+            Background = "green",
+            OnPrimary = "white",
+        };
+
+    [Parameter]
+    public EventCallback<bool?> OnClose { get; set; }
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(null);
+    }
+    string message = "";
+
+    public async Task SubmitForm()
+    {
+        var result = await _apiLogic.CreatePreferenceForm(model);
+        if(result == "Success")
+        {
+            await ModalOk(true);
+        }
+        else
+        {
+            await ModalOk(false);
+        }
+
+    }
+
+    private Task ModalOk(bool? param)
+    {
+        return OnClose.InvokeAsync(param);
+    }
+
+}

@@ -1,0 +1,89 @@
+﻿<BlazorStyled.Styled>
+
+    .dropbtn {
+    background-color: #212529;
+    color: #9B9D9E;
+  padding: 12px;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+}
+
+    .dropdownMenu {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+    background-color: #212529;
+  min-width: 200px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+}
+
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown-content a:hover 
+    {background-color: #383B3F}
+
+        .dropdownMenu:hover .dropdown-content {
+  display: block;
+}
+
+        .dropdownMenu:hover .dropbtn {
+    background-color: #383B3F;
+}
+
+</BlazorStyled.Styled>
+
+<nav class="navbar navbar-expand-md navbar-dark bg-dark" style="max-height: 60px; padding-top: 0px; padding-bottom: 0px; position: sticky; top: 0px; width: 100%; z-index:999; ">
+    <div class="container-fluid" style="width: 80%;">
+        <NavLink class="navbar-brand" href="/homepage"><img style="height: 50px;" src="./logo.png"/></NavLink>
+        <button class="navbar-toggler @NavButtonCssClass" type="button" aria-controls="navbarCollapse"
+                aria-label="Toggle navigation" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse @NavBarCssClass" id="navbarCollapse" @onclick="ToggleNavMenu">
+            <ul class="navbar-nav me-auto mb-2 mb-md-0" >
+                <li class="nav-item dropdownMenu" style="padding-bottom: 1rem; padding-top: 16px; margin-left: 5px;">
+                    <button class="dropbtn">Kategorie</button>
+                    <div class="dropdown-content">
+                        <NavLink href="/Offer/Search/Apartment/Rent">Mieszkania na wynajem</NavLink>
+                        <NavLink href="/Offer/Search/Apartment/Sale">Mieszkania na sprzedaż</NavLink>
+                        <NavLink href="/Offer/Search/House/Rent">Domy na wynajem</NavLink>
+                        <NavLink href="/Offer/Search/House/Sale">Domy na sprzedaż</NavLink>
+                        <NavLink href="/Offer/Search/Plot">Działki</NavLink>
+                        <NavLink href="/Offer/Search/Room/Rent">Pokoje</NavLink>
+                        <NavLink href="/Offer/Search/Garage/Rent">Garaże na wynajem</NavLink>
+                        <NavLink href="/Offer/Search/Garage/Sale">Garaże na sprzedaż</NavLink>
+                        <NavLink href="/Offer/Search/Premises/Rent">Lokale na wynajem</NavLink>
+                        <NavLink href="/Offer/Search/Premises/Sale">Lokale na sprzedaż</NavLink>
+                        <NavLink href="/Offer/Search/Hall/Rent">Hale na wynajem</NavLink>
+                        <NavLink href="/Offer/Search/Hall/Sale">Hale na sprzedaż</NavLink>
+                    </div>
+                </li>
+                <li class="nav-item" style="padding-bottom: 1rem; padding-top: 16px; margin-left: 5px;">
+                    <LoginDisplay></LoginDisplay>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+@code {
+    private bool collapseNavMenu = true;
+    private string? NavBarCssClass => collapseNavMenu ? null : "show";
+    private string? NavButtonCssClass => collapseNavMenu ? "collapsed" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

@@ -1,0 +1,871 @@
+﻿@page "/Offer/Search/House/Sale/"
+<PageTitle>Domy na sprzedaż - BuyDom.pl</PageTitle>
+@using Inżynierka.Shared.DTOs.Offers.Read
+@using Inżynierka.Shared.ViewModels.Offer.Filtering
+@using Inżynierka_Common.Enums
+@using Inżynierka_Common.Helpers
+@using Inżynierka_Common.Listing
+@using Inżynierka.Client.Handlers
+@using Inżynierka_Services.Listing
+@using System.Text.Json
+@using System.Text
+@using Majorsoft.Blazor.Components.Common.JsInterop.Scroll
+@using System.ComponentModel.DataAnnotations;
+@inject IScrollHandler scroll
+@inject HttpClient _httpClient
+@inject IJSRuntime JsRuntime
+@inject NavigationManager _navigationManager
+<BlazorStyled.Styled>
+    .form-check-input:checked
+    {
+    background-color: #008000 !important;
+    border-color: #008000 !important;
+    }
+
+    .title-bar
+    {
+    font-size: 24px;
+    font-family: "Open Sans", sans-serif;
+    font-weight: bold;
+    padding-left: 58px;
+    }
+
+    .hx-multi-select-input:hover
+    {
+    cursor: pointer !important;
+    }
+
+    .form-select
+    {
+    height:50px;
+    border:none !important;
+    border-radius: 0px !important;
+    border-bottom: 1px solid darkgray !important;
+    }
+
+    .dropdown-item:active
+    {
+    background-color: #008000 !important;
+    }
+
+    .dropdown:hover
+    {
+    background-color:#ECECEC;
+    }
+
+    .dropdown
+    {
+    border-radius: 4px 4px 0 0 !important;
+    background-color: #F5F5F5;
+    }
+
+    .mdc-select .mdc-select__anchor {
+    height: 50px !important;
+    display: flex;
+    align-items: baseline;
+    }
+    .mdc-select .mdc-select__dropdown-icon
+    {
+    width: 18px !important;
+    }
+    .mdc-select .mdc-select__anchor::before {
+    height: 38px !important;
+    }
+    .mdc-text-field--filled {
+    height: 50px !important;
+    }
+
+    .form-select:focus
+    {
+    border-bottom: 1px solid darkgray !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    }
+
+    .group-name
+    {
+    font-weight: bold;
+    padding-top: 7px;
+    font-size: 18px;
+    }
+</BlazorStyled.Styled>
+
+<EditForm EditContext="@editContext" OnValidSubmit="Success">
+        <MatThemeProvider Theme="@OfferSearchHelper.theme">
+            <DataAnnotationsValidator />
+            <div class="mat-layout-grid">
+                <div class="mat-layout-grid-inner">
+                    <SearchFormTitle Text="Kryteria wyszukiwania ofert sprzedaży domu"/>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <p>
+                            <MatTextField Style="width:100%;" Label="Miasto" @bind-Value="City" />
+                            <ValidationMessage For="@(() => City)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <p>
+                            <MatNumericUpDownField Label="Cena min. (zł)"
+                                               @bind-Value=@MinPrice
+                                               Style="width:100%;"
+                                               DecimalPlaces=0>
+                            </MatNumericUpDownField>
+                            <ValidationMessage For="@(() => MinPrice)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <p>
+                            <MatNumericUpDownField Label="Cena max. (zł)"
+                                               @bind-Value=@MaxPrice
+                                               Style="width:100%;"
+                                               DecimalPlaces=0>
+                            </MatNumericUpDownField>
+                            <ValidationMessage For="@(() => MaxPrice)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatButton style="width: 100%;height: 77.5%;" @onclick="Search" Unelevated="true" Icon="search">Szukaj</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+
+
+
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4">
+                        <p>
+                            <MatTextField Style="width:100%;" Label="Fragment opisu" @bind-Value="DescriptionFragment" />
+                            <ValidationMessage For="@(() => DescriptionFragment)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatSelectValue Style="width:100%;" Label="Nowość oferty" @bind-Value="@HowRecentEnum" Items="@howRecentList" ValueSelector="@(i=>i)">
+                            <ItemTemplate Context="thisContext">
+                                <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                            </ItemTemplate>
+                        </MatSelectValue>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1">
+                        <p>
+                            <MatNumericUpDownField Label="ID oferty"
+                                               @bind-Value=@OfferId
+                                               Style="width:100%;"
+                                               DecimalPlaces=0>
+                            </MatNumericUpDownField>
+                            <ValidationMessage For="@(() => OfferId)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1">
+                        <MatButton style="width: 100%;height: 77.5%;" @onclick="ShowMore" Outlined="true" Icon="@moreButtonIcon">@moreButtonText</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+                </div>
+            </div>
+            <div class="mat-layout-grid" style="padding-top: 0px; display: @showExtraFilters">
+                <div class="mat-layout-grid-inner">
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2"/>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <p>
+                            <MatNumericUpDownField Label="Min. pow. domu (m²)"
+                                                   @bind-Value=@minArea
+                                                   Style="width:100%;"
+                                                   DecimalPlaces=0>
+                            </MatNumericUpDownField>
+                            <ValidationMessage For="@(() => minArea)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <p>
+                            <MatNumericUpDownField Label="Max. pow. domu (m²)"
+                                                   @bind-Value=@maxArea
+                                                   Style="width:100%;"
+                                                   DecimalPlaces=0>
+                            </MatNumericUpDownField>
+                            <ValidationMessage For="@(() => maxArea)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <p>
+                            <MatNumericUpDownField Label="Min. pow. podwórza (m²)"
+                                                   @bind-Value=@minPlotArea
+                                                   Style="width:100%;"
+                                                   DecimalPlaces=0>
+                            </MatNumericUpDownField>
+                            <ValidationMessage For="@(() => minPlotArea)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <p>
+                            <MatNumericUpDownField Label="Max. pow. podwórza (m²)"
+                                                   @bind-Value=@maxPlotArea
+                                                   Style="width:100%;"
+                                                   DecimalPlaces=0>
+                            </MatNumericUpDownField>
+                            <ValidationMessage For="@(() => maxPlotArea)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+
+
+
+
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <p>
+                        <MatNumericUpDownField Label="Min. liczba pokoi"
+                                               @bind-Value=@minRoomCount
+                                               Style="width:100%;"
+                                               DecimalPlaces=0>
+                        </MatNumericUpDownField>
+                        <ValidationMessage For="@(() => minRoomCount)" />
+                    </p>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <p>
+                        <MatNumericUpDownField Label="Max. liczba pokoi"
+                                               @bind-Value=@maxRoomCount
+                                               Style="width:100%;"
+                                               DecimalPlaces=0>
+                        </MatNumericUpDownField>
+                        <ValidationMessage For="@(() => maxRoomCount)" />
+                    </p>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <p>
+                        <MatNumericUpDownField Label="Min. cena za m²"
+                                               @bind-Value=@minPricePerMeterSquared
+                                               Style="width:100%;"
+                                               DecimalPlaces=0>
+                        </MatNumericUpDownField>
+                        <ValidationMessage For="@(() => minPricePerMeterSquared)" />
+                    </p>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <p>
+                        <MatNumericUpDownField Label="Max. cena za m²"
+                                               @bind-Value=@maxPricePerMeterSquared
+                                               Style="width:100%;"
+                                               DecimalPlaces=0>
+                        </MatNumericUpDownField>
+                        <ValidationMessage For="@(() => maxPricePerMeterSquared)" />
+                    </p>
+                </div>
+                <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+
+
+
+
+
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatSelectValue Style="width:100%;" Label="Rodzaj rynku" @bind-Value="@typesOfMarketInSearchEnum" Items="@typesOfMarketList" ValueSelector="@(i=>i)">
+                            <ItemTemplate Context="thisContext">
+                                <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                            </ItemTemplate>
+                        </MatSelectValue>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatSelectValue Style="width:100%;" Label="Typ ogłoszeniodawcy" @bind-Value="@userRolesInSearchEnum" Items="@userRolesInSearchList" ValueSelector="@(i=>i)">
+                            <ItemTemplate Context="thisContext">
+                                <span>@EnumHelper.GetDescriptionFromEnum(thisContext)</span>
+                            </ItemTemplate>
+                        </MatSelectValue>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <p>
+                        <MatNumericUpDownField Label="Najstarszy rok budowy"
+                                               @bind-Value=@oldestBuildingYear
+                                               Style="width:100%;"
+                                               DecimalPlaces=0>
+                        </MatNumericUpDownField>
+                        <ValidationMessage For="@(() => oldestBuildingYear)" />
+                        </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <p>
+                        <MatNumericUpDownField Label="Najmłodszy rok budowy"
+                                               @bind-Value=@newestBuildingYear
+                                               Style="width:100%;"
+                                               DecimalPlaces=0>
+                        </MatNumericUpDownField>
+                        <ValidationMessage For="@(() => newestBuildingYear)" />
+                    </p>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <HxMultiSelect TItem="TypeOfBuilding"
+                                   TValue="TypeOfBuilding"
+                                   Data="@allBuildingTypes"
+                                   SortKeySelector=@(p=>p)
+                                   @bind-Value="@acceptableBuildingTypesList"
+                                   TextSelector="@(p => EnumHelper.GetDescriptionFromEnum(p))"
+                                   EmptyText="Typy budynku"
+                                   NullDataText="Ładowanie budynków..." />
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <HxMultiSelect TItem="BuildingMaterial"
+                                   TValue="BuildingMaterial"
+                                   Data="@allMaterials"
+                                   SortKeySelector=@(p=>p)
+                                   @bind-Value="@acceptableMaterialsList"
+                                   TextSelector="@(p => EnumHelper.GetDescriptionFromEnum(p))"
+                                   EmptyText="Materiał budynku"
+                                   NullDataText="Ładowanie materiałów..." />
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                    <HxMultiSelect TItem="RoofType"
+                                   TValue="RoofType"
+                                   Data="@allRoofTypes"
+                                   SortKeySelector=@(p=>p)
+                                   @bind-Value="@acceptableRoofTypesList"
+                                   TextSelector="@(p => EnumHelper.GetDescriptionFromEnum(p))"
+                                   EmptyText="Typy dachu"
+                                   NullDataText="Ładowanie dachów..." />
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                        <MatCheckbox Style="width:100%;" @bind-Value="@RemoteControl" Indeterminate="true">Zdalna obsługa</MatCheckbox>
+                        <MatButton Type="button" OnClick="@(_ =>
+			                        {
+				                        RemoteControl = null;
+			                        })">Wyczyść</MatButton>
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+                </div>
+            </div>
+        </MatThemeProvider>
+    </EditForm>
+
+<SpinLoader IsLoading="isLoading">
+    <LoadingTemplate>
+        <div>
+            <br /><br />
+            <CircleFade Center="true" size="70px"></CircleFade>
+        </div>
+    </LoadingTemplate>
+    <ContentTemplate>
+        @if (offers != null && offers.OfferDTOs != null)
+        {
+            <div class="mat-layout-grid">
+                <div class="mat-layout-grid-inner">
+                    <SearchFormFromOffersSeparator Count=@offers.TotalCount Text="sprzedaży domu"/>
+                    @foreach (OfferListThumbnailDTO offer in offers.OfferDTOs)
+                    {
+                        string? imgSrc = null;
+                        string? logoSrc = null;
+                        if (offer.Photo != null)
+                        {
+                            imgSrc = String.Format("data:image/jpg;base64,{0}", Convert.ToBase64String(offer.Photo));
+                        }
+                        if (offer.AgencyLogo != null)
+                        {
+                            logoSrc = String.Format("data:image/jpg;base64,{0}", Convert.ToBase64String(offer.AgencyLogo));
+                        }
+                        <AuthorizeView>
+                            <Authorized>
+                                <SingleOfferInSearch MyId=@Int32.Parse(context.User.Claims.FirstOrDefault(x => x.Type == "UserId")?.Value) Photo=@imgSrc AgencyLogo=@logoSrc EstateType=@offer.EstateType
+                                             OfferType=@offer.OfferType SellerType=@offer.SellerType AgencyName=@offer.AgencyName
+                                             AgencyId=@offer.AgencyId Area=@offer.Area RoomCount=@offer.RoomCount Id=@offer.Id
+                                             OfferTitle=@offer.OfferTitle City=@offer.City Price=offer.Price
+                                             PricePerMeter=@offer.PriceForOneSquareMeter Voivodeship=@offer.Voivodeship />
+                            </Authorized>
+                            <NotAuthorized>
+                                <SingleOfferInSearch MyId=null Photo=@imgSrc AgencyLogo=@logoSrc EstateType=@offer.EstateType
+                                             OfferType=@offer.OfferType SellerType=@offer.SellerType AgencyName=@offer.AgencyName
+                                             AgencyId=@offer.AgencyId Area=@offer.Area RoomCount=@offer.RoomCount Id=@offer.Id
+                                             OfferTitle=@offer.OfferTitle City=@offer.City Price=offer.Price
+                                             PricePerMeter=@offer.PriceForOneSquareMeter Voivodeship=@offer.Voivodeship />
+                            </NotAuthorized>
+                        </AuthorizeView>
+                    }
+
+                    <!-- paginator -->
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4" />
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4">
+                        @if (Page.HasValue && totalPageCount > 0)
+                        {
+                            <div style="margin-left: 37.5%;">
+                                <button class="btn-lg btn" id="prev" @onclick="PrevPage">
+                                    <i class="fa-solid fa-chevron-left"></i>
+                                </button>
+
+
+                                @for (int i = Page.Value - 2; i <= Page + 2; i++)
+                                {
+                                    int j = i;
+                                    @if (i > 0 && i <= totalPageCount)
+                                    {
+                                        if (i == Page)
+                                        {
+                                            <span class="px-2" style="font-weight:bold;cursor:pointer" @onclick="() => ShowPage(j)">@i</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="px-2" style="cursor:pointer" @onclick="() => ShowPage(j)">@i</span>
+                                        }
+                                    }
+                                }
+
+                                <button class="btn-lg btn" id="next" @onclick="NextPage">
+                                    <i class="fa-solid fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        }
+                        else
+                        {
+                            <p>Nie znaleziono ofert spełniających zadane kryteria.</p>
+                        }
+                    </div>
+                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-4" />
+                </div>
+            </div>
+        }
+        <ShowPreferenceFormButton />
+    </ContentTemplate>
+</SpinLoader>
+
+@code {
+    #region Params
+    public int? Page { get; set; } = 1;
+    public string showExtraFilters = "none;";
+    public string moreButtonText = "Więcej";
+    public string moreButtonIcon = "add";
+
+    public void ShowMore()
+    {
+        if(showExtraFilters == "block;")
+        {
+            showExtraFilters = "none;";
+            moreButtonText = "Więcej";
+            moreButtonIcon = "add";
+        }
+        else
+        {
+            showExtraFilters = "block;";
+            moreButtonText = "Mniej";
+            moreButtonIcon = "remove";
+        }
+    }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? City { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    [Range(1, Int32.MaxValue, ErrorMessage ="Wartość nie może być ujemna")]
+    public int? MinPrice { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    [Range(1, Int32.MaxValue, ErrorMessage ="Wartość nie może być ujemna")]
+    public int? MaxPrice { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? HowRecent { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    [Range(1, Int32.MaxValue, ErrorMessage = "Wartość nie może być ujemna")]
+    public int? OfferId { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? DescriptionFragment { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public bool? RemoteControl { get; set; }
+    //dodać wszystkie parametry z wyszukiwarki here
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? typesOfMarketInSearch { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? userRolesInSearch { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    [Range(1, Int32.MaxValue, ErrorMessage ="Wartość nie może być ujemna")]
+    public int? minArea { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    [Range(1, Int32.MaxValue, ErrorMessage ="Wartość nie może być ujemna")]
+    public int? maxArea { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    [Range(1, Int32.MaxValue, ErrorMessage ="Wartość nie może być ujemna")]
+    public int? minPricePerMeterSquared { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    [Range(1, Int32.MaxValue, ErrorMessage ="Wartość nie może być ujemna")]
+    public int? maxPricePerMeterSquared { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    [Range(1, Int32.MaxValue, ErrorMessage ="Wartość nie może być ujemna")]
+    public int? minRoomCount { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    [Range(1, Int32.MaxValue, ErrorMessage ="Wartość nie może być ujemna")]
+    public int? maxRoomCount { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    [Range(0, Int32.MaxValue, ErrorMessage ="Wartość nie może być ujemna")]
+    public int? minPlotArea { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    [Range(0, Int32.MaxValue, ErrorMessage = "Wartość nie może być ujemna")]
+    public int? maxPlotArea { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string[]? availableTypesOfBuilding { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string[]? availableBuildingMaterials { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string[]? availableRoofTypes { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int? oldestBuildingYear { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int? newestBuildingYear { get; set; }
+
+
+    #endregion
+    private int pageSize = 10;
+    private int totalPageCount;
+    private EditContext editContext;
+    public OfferListing? offers { get; set; }
+    public HouseSaleFilteringViewModel model { get; set; } = new();
+    public HowRecent? HowRecentEnum;
+    public HowRecent[] howRecentList = Enum.GetValues(typeof(HowRecent)).Cast<HowRecent>().ToArray();
+    public TypesOfMarketInSearch[] typesOfMarketList = Enum.GetValues(typeof(TypesOfMarketInSearch)).Cast<TypesOfMarketInSearch>().ToArray();
+    public TypesOfMarketInSearch? typesOfMarketInSearchEnum;
+    public UserRolesInSearch[] userRolesInSearchList = Enum.GetValues(typeof(UserRolesInSearch)).Cast<UserRolesInSearch>().ToArray();
+    public UserRolesInSearch? userRolesInSearchEnum;
+
+    public List<TypeOfBuilding> allBuildingTypes = Enum.GetValues(typeof(TypeOfBuilding)).Cast<TypeOfBuilding>().ToList<TypeOfBuilding>();
+    public List<TypeOfBuilding> acceptableBuildingTypesList = new();
+    public List<BuildingMaterial> allMaterials = Enum.GetValues(typeof(BuildingMaterial)).Cast<BuildingMaterial>().ToList<BuildingMaterial>();
+    public List<BuildingMaterial> acceptableMaterialsList = new();
+    public List<RoofType> allRoofTypes = Enum.GetValues(typeof(RoofType)).Cast<RoofType>().ToList<RoofType>();
+    public List<RoofType> acceptableRoofTypesList = new();
+    public async void Success()
+    {
+        Page = 1;
+        await ShowPage();
+    }
+
+    public async void Search()
+    {
+        string uri = OfferSearchHelper.AddStandardQueryParams(_navigationManager.BaseUri, "House", "Sale", City, MaxPrice, HowRecentEnum, MinPrice, OfferId, DescriptionFragment, RemoteControl);
+        if (minArea != null && minArea.Value > 0)
+        {
+            uri = OfferSearchHelper.AddQueryParm(uri, "minArea", minArea.Value.ToString());
+        }
+        if (maxArea != null && maxArea.Value > 0)
+        {
+            uri = OfferSearchHelper.AddQueryParm(uri, "maxArea", maxArea.Value.ToString());
+        }
+
+        if (minPricePerMeterSquared != null && minPricePerMeterSquared.Value > 0)
+        {
+            uri = OfferSearchHelper.AddQueryParm(uri, "minPricePerMeterSquared", minPricePerMeterSquared.Value.ToString());
+        }
+        if (maxPricePerMeterSquared != null && maxPricePerMeterSquared.Value > 0)
+        {
+            uri = OfferSearchHelper.AddQueryParm(uri, "maxPricePerMeterSquared", maxPricePerMeterSquared.Value.ToString());
+        }
+
+        if (minRoomCount != null && minRoomCount.Value > 0)
+        {
+            uri = OfferSearchHelper.AddQueryParm(uri, "minRoomCount", minRoomCount.Value.ToString());
+        }
+        if (maxRoomCount != null && maxRoomCount.Value > 0)
+        {
+            uri = OfferSearchHelper.AddQueryParm(uri, "maxRoomCount", maxRoomCount.Value.ToString());
+        }
+
+        if (minPlotArea != null && minPlotArea.Value > 0)
+        {
+            uri = OfferSearchHelper.AddQueryParm(uri, "minPlotArea", minPlotArea.Value.ToString());
+        }
+        if (maxPlotArea != null && maxPlotArea.Value > 0)
+        {
+            uri = OfferSearchHelper.AddQueryParm(uri, "maxPlotArea", maxPlotArea.Value.ToString());
+        }
+
+        if (oldestBuildingYear != null && oldestBuildingYear.Value > 0)
+        {
+            uri = OfferSearchHelper.AddQueryParm(uri, "oldestBuildingYear", oldestBuildingYear.Value.ToString());
+        }
+        if (newestBuildingYear != null && newestBuildingYear.Value > 0)
+        {
+            uri = OfferSearchHelper.AddQueryParm(uri, "newestBuildingYear", newestBuildingYear.Value.ToString());
+        }
+
+        if (typesOfMarketInSearchEnum != null)
+        {
+            uri = OfferSearchHelper.AddQueryParm(uri, "typesOfMarketInSearch", typesOfMarketInSearchEnum.ToString());
+        }
+        if (userRolesInSearchEnum != null)
+        {
+            uri = OfferSearchHelper.AddQueryParm(uri, "userRolesInSearch", userRolesInSearchEnum.ToString());
+        }
+
+        if (acceptableBuildingTypesList.Any())
+        {
+            var queryStr = string.Join("&", acceptableBuildingTypesList.Select(x => "availableTypesOfBuilding=" + x.ToString()));
+            uri += $"&{queryStr}";
+        }
+
+        if (acceptableRoofTypesList.Any())
+        {
+            var queryStr = string.Join("&", acceptableRoofTypesList.Select(x => "availableRoofTypes=" + x.ToString()));
+            uri += $"&{queryStr}";
+        }
+
+        if (acceptableMaterialsList.Any())
+        {
+            var queryStr = string.Join("&", acceptableMaterialsList.Select(x => "availableBuildingMaterials=" + x.ToString()));
+            uri += $"&{queryStr}";
+        }
+        _navigationManager.NavigateTo(uri, true);
+    }
+    public bool actuallyFirstRender = true;
+    protected async Task ShowPage()
+    {
+        if (Page == null)
+        {
+            Page = 1;
+        }
+        Paging paging = new()
+            {
+                PageSize = pageSize,
+                PageNumber = Page != null ? Page.Value : 1
+            };
+        if (actuallyFirstRender)
+        {
+            await scroll.ScrollToElementByIdAsync("offers");
+            await JsRuntime.InvokeVoidAsync("scroll_past_filters");
+            actuallyFirstRender = false;
+        }
+        Inżynierka_Common.Listing.SortOrder sortOrder = new();
+        sortOrder.Sort = new();
+        KeyValuePair<string, string> sort = new("AddedDate", "DESC"); //na razie na sztywno po dacie
+        sortOrder.Sort.Add(sort);
+        TypesOfMarketInSearch typesOfMarketInSearchEnum;
+        UserRolesInSearch userRolesInSearchEnum;
+        HowRecent? HowRecentEnum;
+
+        if (HowRecent == null || HowRecent == "")
+        {
+            HowRecentEnum = Inżynierka_Common.Enums.HowRecent.ALL;
+        }
+        else
+        {
+            HowRecentEnum = (HowRecent)Enum.Parse(typeof(HowRecent), HowRecent);
+        }
+
+        if (typesOfMarketInSearch == null)
+        {
+            typesOfMarketInSearchEnum = TypesOfMarketInSearch.BOTH;
+        }
+        else
+        {
+            typesOfMarketInSearchEnum = (TypesOfMarketInSearch)Enum.Parse(typeof(TypesOfMarketInSearch), typesOfMarketInSearch);
+        }
+
+        if (userRolesInSearch == null)
+        {
+            userRolesInSearchEnum = UserRolesInSearch.ALL;
+        }
+        else
+        {
+            userRolesInSearchEnum = (UserRolesInSearch)Enum.Parse(typeof(UserRolesInSearch), userRolesInSearch);
+        }
+
+        List<TypeOfBuilding>? types = new();
+        if (availableTypesOfBuilding != null)
+        {
+            foreach (var type in availableTypesOfBuilding)
+            {
+                types.Add((TypeOfBuilding)Enum.Parse(typeof(TypeOfBuilding), type));
+            }
+        }
+        else
+        {
+            types = null;
+        }
+
+        List<BuildingMaterial>? materials = new();
+        if (availableBuildingMaterials!=null)
+        {
+            foreach (var type in availableBuildingMaterials)
+            {
+                materials.Add((BuildingMaterial)Enum.Parse(typeof(BuildingMaterial), type));
+            }
+        }
+        else
+        {
+            materials = null;
+        }
+
+        List<RoofType>? roofTypes = new();
+        if (availableRoofTypes!=null)
+        {
+            foreach (var type in availableRoofTypes)
+            {
+                roofTypes.Add((RoofType)Enum.Parse(typeof(RoofType), type));
+            }
+        }
+        else
+        {
+            roofTypes = null;
+        }
+
+
+        //create the model here
+        model = new()
+            {
+                Paging = paging,
+                SortOrder = sortOrder,
+                HowRecent = HowRecentEnum,
+                City = City,
+                MinPrice = MinPrice,
+                MaxPrice = MaxPrice,
+                OfferId = OfferId,
+                DescriptionFragment = DescriptionFragment,
+                RemoteControl = RemoteControl,
+
+                typesOfMarketInSearch = typesOfMarketInSearchEnum,
+                userRolesInSearch = userRolesInSearchEnum,
+                minArea = minArea,
+                maxArea = maxArea,
+                minPricePerMeterSquared = minPricePerMeterSquared,
+                maxPricePerMeterSquared = maxPricePerMeterSquared,
+                minRoomCount = minRoomCount,
+                maxRoomCount = maxRoomCount,
+                minPlotArea = minPlotArea,
+                maxPlotArea = maxPlotArea,
+                availableTypesOfBuilding = types,
+                availableBuildingMaterials = materials,
+                availableRoofTypes = roofTypes,
+                oldestBuildingYear = oldestBuildingYear,
+                newestBuildingYear = newestBuildingYear
+                //wpisać wszystkie pola z wyszukiwarki here
+            };
+
+        string modelStr = JsonSerializer.Serialize(model);
+        var content = new StringContent(modelStr, Encoding.UTF8, "application/json");
+        var response = await _httpClient.PostAsync("OfferController/Search/Sale/House", content);
+        offers = await response.Content.ReadFromJsonAsync<OfferListing>();
+        totalPageCount = (offers.TotalCount + pageSize - 1) / pageSize;
+        StateHasChanged();
+    }
+
+    public bool isLoading = true;
+    protected override async Task OnInitializedAsync()
+    {
+        if (HowRecent == null || HowRecent == "")
+        {
+            HowRecentEnum = Inżynierka_Common.Enums.HowRecent.ALL;
+        }
+        else
+        {
+            HowRecentEnum = (HowRecent)Enum.Parse(typeof(HowRecent), HowRecent);
+        }
+
+        if (typesOfMarketInSearch == null)
+        {
+            typesOfMarketInSearchEnum = TypesOfMarketInSearch.BOTH;
+        }
+        else
+        {
+            typesOfMarketInSearchEnum = (TypesOfMarketInSearch)Enum.Parse(typeof(TypesOfMarketInSearch), typesOfMarketInSearch);
+        }
+
+        if (userRolesInSearch == null)
+        {
+            userRolesInSearchEnum = UserRolesInSearch.ALL;
+        }
+        else
+        {
+            userRolesInSearchEnum = (UserRolesInSearch)Enum.Parse(typeof(UserRolesInSearch), userRolesInSearch);
+        }
+
+        if (availableTypesOfBuilding != null)
+        {
+            foreach (var buildingType in availableTypesOfBuilding)
+            {
+                acceptableBuildingTypesList.Add((TypeOfBuilding)Enum.Parse(typeof(TypeOfBuilding), buildingType));
+            }
+        }
+
+        if (availableBuildingMaterials != null)
+        {
+            foreach (var buildingType in availableBuildingMaterials)
+            {
+                acceptableMaterialsList.Add((BuildingMaterial)Enum.Parse(typeof(BuildingMaterial), buildingType));
+            }
+        }
+
+        if (availableRoofTypes != null)
+        {
+            foreach (var roofType in availableRoofTypes)
+            {
+                acceptableRoofTypesList.Add((RoofType)Enum.Parse(typeof(RoofType), roofType));
+            }
+        }
+
+        editContext = new(model);
+        await ShowPage();
+        isLoading = false;
+        if (!_navigationManager.Uri.Contains("#offers"))
+        {
+            await JsRuntime.InvokeVoidAsync("scroll_to_top");
+        }
+    }
+
+    protected async Task NextPage()
+    {
+        if(Page < totalPageCount)
+        {
+            Page++;
+            await ShowPage();    
+        }
+    }
+
+    protected async Task ShowPage(int i)
+    {
+        Page = i;
+        await ShowPage();
+    }
+
+    protected async Task PrevPage()
+    {
+        if (Page > 1)
+        {
+            Page--;
+            await ShowPage();
+        }
+    }
+
+}

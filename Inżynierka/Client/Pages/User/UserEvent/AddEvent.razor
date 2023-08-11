@@ -1,0 +1,166 @@
+﻿@using Inżynierka.Client.Logics;
+@using Inżynierka.Shared.ViewModels.UserEvents;
+@using Inżynierka_Common.Enums;
+@inject DialogService DialogService
+@inject IApiLogic _apiLogic
+@inject IJSRuntime JsRuntime
+@inject HttpClient Http
+@inject NavigationManager NavManager
+@inject IMatToaster Toaster
+<RadzenTemplateForm TItem="UserEventCreateViewModel" Data="@model" Submit=@OnSubmit>
+    <DataAnnotationsValidator />
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Treść" />
+        </div>
+        <div class="col">
+            <RadzenTextBox Style="width:100%;" @bind-Value="@model.EventName" Name="Treść" />
+            <RadzenRequiredValidator Text="Treść jest wymagana" Component="Treść" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Data" />
+        </div>
+        <div class="col">
+            <RadzenDatePicker Style="width:100%;" @bind-Value="@model.DeadlineDate" Name="Data" ShowTime="true" />
+            <RadzenRequiredValidator Text="Data jest wymagana" Component="Data" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Imię klienta" />
+        </div>
+        <div class="col">
+            <RadzenTextBox Style="width:100%;" @bind-Value="@model.ClientName" Name="ClientName" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Email klienta" />
+        </div>
+        <div class="col">
+            <RadzenTextBox Style="width:100%;" @bind-Value="@model.ClientEmail" Name="ClientEmail" />
+            <ValidationMessage For="@(() => model.ClientEmail)" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Telefon klienta" />
+        </div>
+        <div class="col">
+            <RadzenTextBox Style="width:100%;" MaxLength="9" @bind-Value="@model.ClientPhoneNumber" Name="ClientPhoneNumber" />
+            <ValidationMessage For="@(() => model.ClientPhoneNumber)" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="ID oferty" />
+        </div>
+        <div class="col">
+            <RadzenNumeric Style="width:100%;" Name="OfferId" Placeholder="1" Min="1" Max="Int32.MaxValue" @bind-Value=@model.OfferId />
+            <RadzenRequiredValidator Text="Powiązana oferta jest wymagana" Component="OfferId" />
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-10"></div>
+        <div class="col-md-2" style="margin-left: -15px;">
+            <MatThemeProvider Theme="@theme">
+                <MatButton Type="submit" Raised="true">Zapisz</MatButton>
+            </MatThemeProvider>
+        </div>
+    </div>
+
+</RadzenTemplateForm>
+
+@code {
+    MatTheme theme = new()
+        {
+            Primary = "#4caf50",
+            Secondary = "#4caf50",
+            Surface = "#ffffff"
+        };
+
+    [Parameter]
+    public DateTime Date{ get; set; }
+
+    UserEventCreateViewModel model = new UserEventCreateViewModel();
+
+    protected override async Task OnInitializedAsync()
+    {
+        model = new UserEventCreateViewModel();
+        model.DeadlineDate = Date;
+        model.OfferId = 1; //to set the default value to something different than 0
+
+        _showProgressBar = Toaster.Configuration.ShowProgressBar;
+        _showCloseButton = Toaster.Configuration.ShowCloseButton;
+        _maximumOpacity = Toaster.Configuration.MaximumOpacity.ToString();
+        _showTransitionDuration = Toaster.Configuration.ShowTransitionDuration.ToString();
+        _visibleStateDuration = Toaster.Configuration.VisibleStateDuration.ToString();
+        _hideTransitionDuration = Toaster.Configuration.HideTransitionDuration.ToString();
+        _requireInteraction = Toaster.Configuration.RequireInteraction;
+
+        await base.OnInitializedAsync();
+    }
+
+
+    private bool _showProgressBar;
+    private bool _showCloseButton;
+    private bool _actionOnClick;
+    private string _maximumOpacity;
+
+    private string _showTransitionDuration;
+    private string _visibleStateDuration;
+    private string _hideTransitionDuration;
+    private bool _requireInteraction;
+    public string _maxDisplayedToasts
+    {
+        get { return Toaster.Configuration.MaxDisplayedToasts.ToString(); }
+        set { Toaster.Configuration.MaxDisplayedToasts = Convert.ToInt32(value); }
+    }
+    private string _toastPosition
+    {
+        get { return Toaster.Configuration.Position.ToString(); }
+        set { Toaster.Configuration.Position = (MatToastPosition)Enum.Parse(typeof(MatToastPosition), value); }
+    }
+
+    public void Show(MatToastType type, string message, string title, string icon = "")
+    {
+        Toaster.Add(message, type, title, icon, config =>
+        {
+            config.ShowCloseButton = _showCloseButton;
+            config.ShowProgressBar = _showProgressBar;
+            config.MaximumOpacity = Convert.ToInt32(_maximumOpacity);
+
+            config.ShowTransitionDuration = Convert.ToInt32(_showTransitionDuration);
+            config.VisibleStateDuration = Convert.ToInt32(_visibleStateDuration);
+            config.HideTransitionDuration = Convert.ToInt32(_hideTransitionDuration);
+
+            config.RequireInteraction = _requireInteraction;
+
+            if (_actionOnClick)
+            {
+                config.Onclick = toast =>
+                {
+                    Console.WriteLine($"Title: \"{toast.Title}\"; message: \"{toast.Message}\"; Type: {toast.Options.Type}");
+                    return Task.CompletedTask;
+                };
+            }
+        });
+    }
+
+
+    public async void OnSubmit(UserEventCreateViewModel model)
+    {
+        //await _apiLogic.UpdateEvent(model, id);
+        var result = await _apiLogic.CreateUserEvent(model);
+        if(result == "Success")
+        {
+            NavManager.NavigateTo("/User/Events", true);
+        }
+        else
+        {
+            Show(MatToastType.Danger, $"{result}", "Błąd", "");
+        }
+    }
+}

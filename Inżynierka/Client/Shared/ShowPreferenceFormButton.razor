@@ -1,0 +1,82 @@
+﻿<BlazorStyled.Styled>
+    #button
+    {
+    background-color: green;
+    position: fixed;
+    bottom: 2%;
+    right: 1%;
+    border: 0px none;
+    width: 230px;
+    height: 70px;
+    border-radius: 35px;
+    color: white;
+    font-size: 13px;
+    padding: 15px;
+    padding-top: 15px;
+    text-align: center;
+    padding-top: 13px;
+    }
+
+    #button:hover
+    {
+        cursor:pointer;
+        background-color: #148A14;
+    }
+</BlazorStyled.Styled>
+
+<button id="button" @onclick="()=>ShowPrefForm()">
+    Nie znajdujesz czego szukasz? Wypełnij <b>formularz preferencji</b>!
+</button>
+@if(showForm)
+{
+    <PreferenceFormModalDialog OnClose="@OnFormDialogClose"/>
+}
+@if(showResultForm)
+{
+    if (dialogResult.HasValue && dialogResult.Value == false)
+    {
+        <ResponseModalDialog Text="Niestety nikt spośród naszych agentów nie posiada ofert spełniających podane kryteria. Prosimy zmienić nieco kryteria i spróbować ponownie." Title="Brak" OnClose="@OnResultDialogClose" />
+    }
+    else if(dialogResult.HasValue && dialogResult.Value==true)
+    {
+        <ResponseModalDialog Text="Formularz został pomyślnie przekazany naszym agentom. W najbliższym czasie powinni wysłać propozycje ofert na wskazany adres email." Title="Przekazano" OnClose="@OnResultDialogClose" />
+    }
+}
+@code {
+    public bool showForm = false;
+    public bool showResultForm = false;
+
+    public void ShowPrefForm()
+    {
+        showForm = !showForm;
+        StateHasChanged();
+    }
+
+
+    public async void OnResultDialogClose(bool accepted)
+    {
+        showForm = false;
+        showResultForm = false;
+    }
+
+    public bool? dialogResult = false;
+    private async void OnFormDialogClose(bool? accepted)
+    {
+        showForm = false;
+        showResultForm = true;
+        if (accepted != null && accepted.Value == true)
+        {
+            dialogResult = true;
+        }
+        else if (accepted != null && accepted.Value == false)
+        {
+            dialogResult = false;
+        }
+        else
+        {
+            dialogResult = null;
+        }
+
+        StateHasChanged();
+    }
+}

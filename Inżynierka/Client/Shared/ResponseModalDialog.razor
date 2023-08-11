@@ -1,0 +1,50 @@
+﻿@using Inżynierka_Common.Enums
+@using Inżynierka_Common.Helpers
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">@Title</h4>
+                <MatButton type="button" class="close" @onclick="@ModalCancel">&times;</MatButton>
+            </div>
+            <div class="modal-body">
+                <p style="text-align: justify;">@Text</p>
+            </div>
+            <div class="modal-footer">
+                <MatThemeProvider Theme="@theme">
+                    <MatButton Unelevated="true" style="width:48.25%; position:relative;" @onclick=@(()=>ModalOk(true))><i style="position: absolute;left: 10px;top: 12px;"></i>OK</MatButton>
+                </MatThemeProvider>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    MatTheme theme = new MatTheme()
+        {
+            Primary = "green",
+            Background = "green",
+            OnPrimary = "white",
+        };
+
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public string Text { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+
+    private Task ModalOk(bool param)
+    {
+        return OnClose.InvokeAsync(param);
+    }
+
+}

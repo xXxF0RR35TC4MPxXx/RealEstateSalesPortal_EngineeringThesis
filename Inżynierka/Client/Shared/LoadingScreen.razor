@@ -1,0 +1,14 @@
+﻿<div style="position:absolute; position: -webkit-sticky;
+                     position: sticky;
+                     top:30vh; width:100%; text-align:center">
+    <h1>BuyDom.pl - znajdź swój kąt 🏠</h1>
+    <div style="display:flex; gap:10px; justify-content:center; align-items:center">
+        <div class="spinner-border" role="status"></div>
+        @Text
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string Text { get; set; } = "";
+}

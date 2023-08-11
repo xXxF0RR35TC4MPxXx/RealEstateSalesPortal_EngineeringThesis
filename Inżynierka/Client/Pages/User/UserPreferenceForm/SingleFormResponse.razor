@@ -1,0 +1,294 @@
+﻿@using Inżynierka.Client.Handlers;
+@using Inżynierka.Client.Logics;
+@using Inżynierka.Shared.DTOs.Offers.Read
+@inject HttpClient Http
+@inject IJSRuntime Js
+@inject AuthenticationStateProvider _authStateProvider
+@inject NavigationManager NavManager
+@inject IApiLogic _apiLogic
+@inject IMatToaster Toaster
+@inject NavigationManager NavManager
+<BlazorStyled.Styled>
+    .singleOffer
+    {
+        border-radius: 15px; 
+        box-shadow: rgb(156, 156, 158) 0px 0px 20px -8px;
+        width:100%;
+        height: 30vh;
+        padding: 15px;
+    }
+
+    .photo-thumbnail
+    {
+        float: left;
+        width: 30%;
+        margin-right: 15px;
+        height: 100%;
+        box-shadow: rgb(156, 156, 158) 0px 0px 20px -8px;
+        border-radius: 8px;
+    }
+
+
+    .offer-right-side 
+    {
+        position: relative;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .offer-title
+    {
+        text-decoration:none;
+        color: black;
+        font-size: 21px;
+        max-width:67%;
+        font-family: "Open Sans", sans-serif;
+        font-weight: bold;
+        word-break: break-word;
+    }
+
+    .extra-info
+    {
+        text-decoration:none;
+        color: gray;
+        font-family: "Open Sans", sans-serif;
+        position:absolute;
+        top: 65%;
+    }
+
+
+    .offer-price
+    {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        margin-bottom: 0px;
+        text-decoration:none;
+        color: black;
+        font-size: 24px;
+        font-family: "Open Sans", sans-serif;
+        font-weight: bold;
+    }
+
+    a
+    {
+        text-decoration:none !important;
+    }
+
+    .photo
+    {
+        width:100%;
+        height:100%;
+        object-fit: cover;
+        overflow: hidden;
+        border-radius: 8px;
+    }
+
+    .removeButton
+    {
+        position:absolute !important;
+        top:0;
+        right:0;
+    }
+
+</BlazorStyled.Styled>
+<MatThemeProvider Theme="@theme">
+<div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+
+<div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">  
+    <div class="singleOffer">
+        <NavLink href="@link">
+        @{
+            <div class="photo-thumbnail">
+                @if (Photo != null && Photo!="")
+                {
+                    <img src='@Photo' class="photo"/>
+                }
+                else
+                {
+                    <img src=./images/placeholder.jpg class="photo"/>
+                }
+            </div>
+                    
+        }
+        </NavLink>
+        <div class="offer-right-side">
+            <NavLink href="@link">
+            <p class="offer-title">@OfferTitle</p>
+            <p class="extra-info">
+                Miasto: @OfferCity
+            </p>
+            @{ 
+                if(OfferType == "Sprzedaż")
+                {
+                    <p class="offer-price">@OfferPrice zł</p>
+                }
+                else
+                {
+                    <p class="offer-price">@OfferPrice zł/msc</p>
+                }
+            }
+        </NavLink>
+        @if(isAgent)
+        {
+            <MatThemeProvider Theme="@deleteTheme">
+                <MatButton Icon="delete" class="removeButton" @onclick="()=>OpenDeleteDialog()" Unelevated="true">Usuń propozycję</MatButton>
+            </MatThemeProvider>
+        }   
+        </div> 
+    </div>
+</div>
+<div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+</MatThemeProvider>
+@if (isDeleteDialogOpen)
+{
+    <RemoveConfirmationModalDialog 
+        DialogType="RemoveConfirmationModalDialog.ModalDialogType.DeleteCancel"
+        Title="Potwierdzenie usunięcia"
+        Text="Czy na pewno chcesz usunąć tę propozycję?"
+        OnClose="@OnDeleteDialogClose">
+    </RemoveConfirmationModalDialog>
+}
+
+@code {
+    
+
+    private void OpenDeleteDialog()
+    {
+        isDeleteDialogOpen = true;
+        StateHasChanged();
+    }
+
+    private async void OnDeleteDialogClose(bool accepted)
+    {
+        if (accepted)
+        {
+            var response = await _apiLogic.DeleteFormSuggestion(Id, formId);
+            if(response!="")
+            {
+                Show(MatToastType.Danger, $"{response}", "Błąd", "");
+            }
+            else
+            {
+                isDeleteDialogOpen = false;
+                NavManager.NavigateTo($"/User/MyUserPreferenceForms/{formId}", true);
+            }
+        }
+        else
+        {
+            isDeleteDialogOpen = false;
+            StateHasChanged();
+        }
+    }
+
+    #region Params
+    public bool isDeleteDialogOpen = false;
+    public string link = "";
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public bool isAgent { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int formId { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string OfferTitle { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string OfferType { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? OfferCity { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int OfferPrice { get; set; } //cena całkowita
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Photo { get; set; }
+
+    #endregion
+    #region Toaster
+    private bool _showProgressBar;
+    private bool _showCloseButton;
+    private bool _actionOnClick;
+    private string _maximumOpacity;
+
+    private string _showTransitionDuration;
+    private string _visibleStateDuration;
+    private string _hideTransitionDuration;
+    private bool _requireInteraction;
+    public string _maxDisplayedToasts
+    {
+        get { return Toaster.Configuration.MaxDisplayedToasts.ToString(); }
+        set { Toaster.Configuration.MaxDisplayedToasts = Convert.ToInt32(value); }
+    }
+    private string _toastPosition
+    {
+        get { return Toaster.Configuration.Position.ToString(); }
+        set { Toaster.Configuration.Position = (MatToastPosition)Enum.Parse(typeof(MatToastPosition), value); }
+    }
+
+    public void Show(MatToastType type, string message, string title, string icon = "")
+    {
+        Toaster.Add(message, type, title, icon, config =>
+        {
+            config.ShowCloseButton = _showCloseButton;
+            config.ShowProgressBar = _showProgressBar;
+            config.MaximumOpacity = Convert.ToInt32(_maximumOpacity);
+
+            config.ShowTransitionDuration = Convert.ToInt32(_showTransitionDuration);
+            config.VisibleStateDuration = Convert.ToInt32(_visibleStateDuration);
+            config.HideTransitionDuration = Convert.ToInt32(_hideTransitionDuration);
+
+            config.RequireInteraction = _requireInteraction;
+
+            if (_actionOnClick)
+            {
+                config.Onclick = toast =>
+                {
+                    return Task.CompletedTask;
+                };
+            }
+        });
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        _showProgressBar = Toaster.Configuration.ShowProgressBar;
+        _showCloseButton = Toaster.Configuration.ShowCloseButton;
+        _maximumOpacity = Toaster.Configuration.MaximumOpacity.ToString();
+        _showTransitionDuration = Toaster.Configuration.ShowTransitionDuration.ToString();
+        _visibleStateDuration = Toaster.Configuration.VisibleStateDuration.ToString();
+        _hideTransitionDuration = Toaster.Configuration.HideTransitionDuration.ToString();
+        _requireInteraction = Toaster.Configuration.RequireInteraction;
+
+        StateHasChanged();
+        await base.OnInitializedAsync();
+    }       
+    #endregion
+    protected override async Task OnParametersSetAsync()
+    {
+        link = $"Offer/{Id}";
+    }
+
+    MatTheme theme = new MatTheme()
+    {
+        Primary = "green",
+        Secondary = "green"
+    };
+    
+    MatTheme deleteTheme = new MatTheme()
+    {
+            Primary = "#e03d3d",
+            Secondary = "#e03d3d"
+    };
+}

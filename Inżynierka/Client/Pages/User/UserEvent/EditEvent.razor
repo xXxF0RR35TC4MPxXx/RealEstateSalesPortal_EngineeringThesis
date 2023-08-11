@@ -1,0 +1,132 @@
+﻿@using Inżynierka.Client.Logics;
+@using Inżynierka.Shared.ViewModels.UserEvents;
+@using Inżynierka_Common.Enums;
+@inject DialogService DialogService
+@inject IApiLogic _apiLogic
+@inject IJSRuntime JsRuntime
+@inject HttpClient Http
+@inject NavigationManager NavManager
+
+<RadzenTemplateForm TItem="UserEventUpdateViewModel" Data="@model" Submit=@OnSubmit>
+    <DataAnnotationsValidator />
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-12">
+            <NavLink href="@(GetURL())">@(GetText())</NavLink>
+            </div>
+        </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Treść" />
+        </div>
+        <div class="col">
+                <RadzenTextBox Style="width:100%;" @bind-Value="@model.EventName" Name="Treść" />
+            <RadzenRequiredValidator Text="Treść jest wymagana" Component="Treść" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Data" />
+        </div>
+        <div class="col">
+                <RadzenDatePicker Style="width:100%;" @bind-Value="@model.DeadlineDate" Name="Data" ShowTime="true" />
+            <RadzenRequiredValidator Text="Data jest wymagana" Component="Data" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Imię klienta" />
+        </div>
+        <div class="col">
+            <RadzenDatePicker Style="width:100%;" PadMinutes=true PadHours=true @bind-Value="@model.ClientName" Name="ClientName" ShowTime="true" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Email klienta" />
+        </div>
+        <div class="col">
+            <RadzenTextBox Style="width:100%;" @bind-Value="@model.ClientEmail" Name="ClientEmail" />
+            <ValidationMessage For="@(() => model.ClientEmail)" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Telefon klienta" />
+        </div>
+        <div class="col">
+            <RadzenTextBox Style="width:100%;" @bind-Value="@model.ClientPhoneNumber" Name="ClientPhoneNumber" />
+            <ValidationMessage For="@(() => model.ClientPhoneNumber)" />
+        </div>
+    </div>
+    <div class="row" style="margin-bottom: 16px">
+        <div class="col-md-3">
+            <RadzenLabel Text="Stan zdarzenia" />
+        </div>
+        <div class="col">
+                <RadzenDropDown Style="width:100%;" TextProperty="" Data="@(Enum.GetValues(typeof(EventCompletionStatus)).Cast<Enum>())" @bind-Value="@model.EventCompletionStatus" />
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-7"></div>
+        <div class="col">
+            <MatThemeProvider Theme="@theme2">
+                <MatButton Icon="delete" OnClick="()=>Remove()" Raised="true">Usuń</MatButton>
+            </MatThemeProvider>
+            <MatThemeProvider Theme="@theme">
+                <MatButton Icon="save" Type="submit" Raised="true">Zapisz</MatButton>
+            </MatThemeProvider>
+        </div>
+    </div>
+    
+</RadzenTemplateForm>
+    @code {
+
+    public async void Remove()
+    {
+        await Http.GetAsync($"UserEventsController/Delete/{id}");
+        NavManager.NavigateTo("/User/Events", true);
+    }
+
+    MatTheme theme = new()
+        {
+            Primary = "#4caf50",
+            Secondary = "#4caf50",
+            Surface = "#ffffff"
+        };
+
+    MatTheme theme2 = new()
+        {
+            Primary = "#f23a3a",
+            Secondary = "#f23a3a",
+            Surface = "#ffffff"
+        };
+
+    [Parameter]
+    public int id{ get; set; }
+
+    [Parameter]
+    public int offerId { get; set; }
+
+    public string? GetURL()
+    {
+        return $"Offer/{offerId}";
+    }
+
+    public string? GetText()
+    {
+        return $"Zdarzenie dotyczy oferty o ID: {offerId}";
+    }
+
+    UserEventUpdateViewModel? model = new UserEventUpdateViewModel();
+
+    protected override async Task OnInitializedAsync()
+    {
+        model = await Http.GetFromJsonAsync<UserEventUpdateViewModel?>($"UserEventsController/GetUpdateViewModel/{id}"); //pobierz event po id z serwera;
+    }
+
+    public async void OnSubmit(UserEventUpdateViewModel model)
+    {
+        await _apiLogic.UpdateEvent(model, id);
+        NavManager.NavigateTo("/User/Events", true);
+    }
+}

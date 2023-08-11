@@ -1,0 +1,116 @@
+﻿@page "/Auth/ConfirmEmailPage/"
+@using Blazored.LocalStorage
+@using Inżynierka.Client.Logics
+@using Inżynierka.Shared.ViewModels.User
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IApiLogic _apiLogic
+@inject NavigationManager _navigationManager
+@inject ILocalStorageService _localStorageService;
+@inject IJSRuntime JSRuntime
+<PageTitle>Potwierdzenie rejestracji - BuyDom.pl</PageTitle>
+<BlazorStyled.Styled>
+    .content{
+    width: 450px;
+    height: 1080px;
+    margin: auto;
+    margin-top: 5%;
+    }
+
+    .tab-content{
+    position: absolute;
+    width: 450px;
+    height: auto;
+    margin-top: -50px;
+    background: #fff;
+    color: #000;
+    border-radius: 30px;
+    z-index: 69;
+    box-shadow: 0px 10px 10px rgba(0, 0, 0, 0.4);
+    padding: 30px;
+    margin-bottom: 50px;
+    }
+
+    .myBtn{
+    display: inline-block;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    text-align: center;
+    text-decoration: none;
+    vertical-align: middle;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    background-color: lightskyblue;
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: .25rem;
+    color: white;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    }
+
+    .myBtn:hover {
+    color: #0a58ca;
+    }
+
+    .myBtn:focus {
+    background-color:#0D6EFD;
+    }
+
+    .page-wrap{
+        min-height: 150%;
+    }
+
+    #login{
+    text-align: justify;
+    text-justify: inter-word;
+    }
+
+    .tab-content button{
+    border-radius: 15px;
+    width: 150px;
+    margin: 0 auto;
+    margin-top: 15px;
+    float: right;
+    }
+</BlazorStyled.Styled>
+
+<div class="content">
+    <!-- Tab panes -->
+    <div class="tab-content">
+        <div id="login" class="container tab-pane active">
+            <p>@message</p>
+            <NavLink href="/homepage" class="myBtn">Wróć do strony głównej</NavLink>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? guid { get; set; }
+
+    public string? message { get; set; }
+
+    protected override async Task OnInitializedAsync(){
+        if (!Guid.TryParse(guid, out Guid guidOutput)){
+            await JSRuntime.InvokeVoidAsync("console.log", $"Guid: {guidOutput} nie jest poprawnym guidem");
+            _navigationManager.NavigateTo("/homepage");
+        }
+        else{
+            await JSRuntime.InvokeVoidAsync("console.log", $"Guid: {guidOutput} JEST poprawnym guidem");
+            var message = await _apiLogic.ConfirmEmailAsync(guidOutput);
+            if (message == "Success")
+            {
+                this.message = "Dziękujemy za potwierdzenie rejestracji. Od teraz możesz logować się na swoje konto i korzystać z serwisu!";
+            }
+            else if(message == "failed")
+            {
+                this.message = "Niewłaściwy Guid lub użytkownik z takim guidem nie istnieje. Spróbuj ponownie!";
+            }
+        }
+    }
+
+}

@@ -1,0 +1,402 @@
+﻿@using Inżynierka.Client.Logics;
+@using Inżynierka.Client.Pages.Agency
+@using Inżynierka.Shared.ViewModels.Offer.Filtering;
+@using Inżynierka_Common.Enums;
+@using Inżynierka_Common.Listing;
+@using Inżynierka_Services.Listing;
+@inject HttpClient Http
+@inject IApiLogic _apiLogic
+@inject IJSRuntime JS
+<BlazorStyled.Styled>
+
+    .numberCircle {
+    background: red;
+    border: 1px solid red;
+    color: white;
+    text-align: center;
+    font: 13px Arial, sans-serif;
+    margin-left: 9px;
+    padding: 2px;
+    border-radius: 50%;
+    width: 21px;
+    height: 21px;
+    font-weight: bold;
+    }
+
+    .user-profile-avatar-img
+    {
+    width: 19%;
+    height: 33vh;
+    border-radius: 14px;
+    margin-left: 2%;
+    margin-top: 2%;
+    box-shadow: rgb(156, 156, 158) 0px 0px 20px -8px;
+
+    object-fit: cover;
+    overflow: hidden;
+    }
+
+    #user-profile-user-info
+    {
+    box-shadow: 0px 0px 20px -8px rgba(156, 156, 158, 1);
+    border-radius: 25px;
+    }
+    .user-profile-user-name
+    {
+    position: absolute;
+    top: 8%;
+    font-size: 33px;
+    font-family: "Open Sans", sans-serif;
+    font-weight: bold;
+    left: 23%;
+    }
+
+    .user-profile-user-phone
+    {
+    position: absolute;
+    top: 33%;
+    left: 23%;
+    font-size: 18px;
+    }
+
+    .user-profile-info
+    {
+    position:relative;
+    }
+
+    #user-profile-show-seller-phone:hover
+    {
+    cursor: pointer;
+    }
+
+    #user-profile-show-seller-phone
+    {
+    }
+    .user-profile-agency-logo2
+    {
+    max-height: 15vh;
+    max-width: 17vw;
+    width: auto;
+    margin-left: 20%;
+    border-radius: 10px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    }
+    .user-profile-seller-type2
+    {
+    position: absolute !important;
+    left: 14%;
+    margin-bottom: 0px;
+    min-width: 14vw;
+    text-decoration: none;
+    color: gray;
+    font-family: "Open Sans", sans-serif;
+    }
+
+    .user-profile-seller-type-agency2
+    {
+    position: absolute !important;
+    bottom: 6.5vh;
+    min-width: 14vw;
+    text-decoration: none;
+    color: gray;
+    font-family: "Open Sans", sans-serif;
+    top: 33px;
+    right: 3%;
+    }
+
+    .user-profile-agency-name2
+    {
+    width: 100%;
+    position: absolute;
+    top: 100%;
+    text-align: center;
+    }
+
+    .user-profile-user-since
+    {
+    text-align: center;
+    padding-right: 5px;
+    position: absolute;
+    color: gray;
+    left: 23%;
+    top: 90%;
+    font-size: 16px;
+    font-family: "Open Sans", sans-serif;
+    }
+
+    .user-profile-description
+    {
+        position: absolute;
+        font-family: "Open Sans", sans-serif;
+        left: 23%;
+        top: 62%;
+        font-size: 16px;
+        width: 50%;
+        max-width: 50%;
+    }
+</BlazorStyled.Styled>
+
+@if (user != null)
+{
+    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1" />
+    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-10" id="user-profile-user-info">
+        <div class="user-profile-info">
+            @{
+                if (user.UserAvatar != null)
+                {
+                    var base64 = Convert.ToBase64String(user.UserAvatar);
+                    var imgSrc = String.Format("data:image/jpg;base64,{0}", base64);
+                    <img class="user-profile-avatar-img" src="@imgSrc" />
+                }
+                else
+                {
+                    <img class="user-profile-avatar-img" src="../images/avatar_placeholder.jpg" />
+                }
+            }
+
+            <p class="user-profile-user-name">@user.UserFirstName @user.UserLastName</p>
+            <div class="user-profile-user-phone">
+                @if(phone!=null && phone != "")
+                {
+                    <b>Telefon: </b> @phone
+                    <p style="width:@(buttonUserPhoneVisible?"75%;":"1px;")" id="user-profile-show-seller-phone" @onclick="showFullSellerPhone">@((MarkupString)showSellerPhoneText)</p>
+                }
+            </div>
+
+            @if(user.UserDescription!=null && user.UserDescription != "")
+            {
+                <div class="user-profile-description">
+                    <p>@user.UserDescription</p>
+                </div>
+            }
+            
+            <div id="user-profile-agency">
+                @{
+                    if (user.AgencyId == null)
+                    {
+                        <div class="user-profile-agency-div2">
+                            <div class="user-profile-seller-type-agency2">
+                                <p class="user-profile-seller-type2">Użytkownik prywatny</p>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="user-profile-agency-div2">
+                            <NavLink href="@GetAgencyLink()">
+                                <div class="user-profile-seller-type-agency2">
+                                    <p style="text-align: center; padding-right: 5px;">Agent biura nieruchomości</p>
+                                    @if (user.AgencyLogo != null)
+                                    {
+                                        var base64 = Convert.ToBase64String(user.AgencyLogo);
+                                        var imgSrc = String.Format("data:image/jpg;base64,{0}", base64);
+                                        <img src='@imgSrc' class="user-profile-agency-logo2" />
+                                    }
+                                    <p class="user-profile-agency-name2">@user.AgencyName</p>
+                                </div>
+                            </NavLink>
+                        </div>
+                    }
+                }
+                @if (user.UserCreatedAt != null)
+                {
+                    <p class="user-profile-user-since">Użytkownik od: @user.UserCreatedAt.Value.Date.ToShortDateString()</p>
+                }
+
+            </div>
+        </div>
+        <div class="mat-layout-grid">
+            <div class="mat-layout-grid-inner">
+                <AuthorizeView>
+                    <Authorized>
+                    <MatThemeProvider Theme="@theme">
+                        @{
+                            if (Int32.Parse(userId) == Int32.Parse(context.User.Claims.FirstOrDefault(x => x.Type == "UserId")?.Value))
+                            {
+                                @if (isAgency == true)
+                                {
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1" />
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                        <MatButtonLink style="width: 100%;" Icon="star_rate" Href="@GetUserLink()" Outlined="true">Moje oferty</MatButtonLink>
+                                    </div>
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                        <MatButtonLink style="width: 100%;" Icon="favorite" Href="/User/Favourites" Outlined="true">Ulubione</MatButtonLink>
+                                    </div>
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                        <MatButtonLink style="width: 100%;" Icon="calendar_today" Href="/User/Events" Outlined="true">Terminarz @{if(todayCount!=null && todayCount > 0){<div class="numberCircle">@todayCount</div>}}</MatButtonLink>
+                                    </div>
+                                
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                    
+                                            <MatButtonLink style="width: 100%;" Icon="insert_drive_file" Href="/User/MyUserPreferenceForms" Outlined="true">Formularze</MatButtonLink>
+                                    
+                                    </div>
+                                
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                        <MatButtonLink style="width: 100%;" Icon="settings" Href="/User/Update" Outlined="true">Ustawienia</MatButtonLink>
+                                    </div>
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1" />
+                                }
+                                else
+                                {
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1" />
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                        <MatButtonLink style="width: 100%;" Icon="star_rate" Href="@GetUserLink()" Outlined="true">Moje oferty</MatButtonLink>
+                                    </div>
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                        <MatButtonLink style="width: 100%;" Icon="favorite" Href="/User/Favourites" Outlined="true">Ulubione</MatButtonLink>
+                                    </div>
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                        <MatButtonLink style="width: 100%;" Icon="calendar_today" Href="/User/Events" Outlined="true">Terminarz @{
+                                                if (todayCount != null && todayCount > 0)
+                                                {
+                                                    <div class="numberCircle">@todayCount</div>
+                                                }
+                                            }</MatButtonLink>
+                                    </div>
+
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                        <MatButtonLink style="width: 100%;" Icon="settings" Href="/User/Update" Outlined="true">Ustawienia</MatButtonLink>
+                                    </div>
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                        <MatButton style="width: 100%;" Icon="group_add" OnClick=@(()=>ShowAgencyModal()) Outlined="true">Agencje</MatButton>
+                                    </div>
+                                    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1" />
+                                }
+                            }
+                        }
+                    </MatThemeProvider>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+        </div>
+    </div>
+    <div class="mat-layout-grid-cell mat-layout-grid-cell-span-1" />
+}
+@if (isAgencyModalOpen)
+{
+    <ChooseAgencyOptionModalDialog userId=@Int32.Parse(userId) OnClose=@(()=>OnAgencyDialogClose())/>
+    <!-- w modalu mają być opcje: odnośnik do createForm, pole tekstowe do wpisania kodu zaproszeniowego -->
+}
+
+@code {
+    [Parameter]
+    public string? userId { get; set; }
+
+    [Parameter]
+    public string? viewerId { get; set; } = "";
+
+    public bool isAgency = false;
+    public bool isAgencyModalOpen = false;
+
+    #region Phone Number Hiding
+    public string phone = "";
+    public string showSellerPhoneText = "Pokaż >>";
+    bool buttonUserPhoneVisible = true;
+    //show the entire phone number of the seller
+
+    public async void ShowAgencyModal()
+    {
+        isAgencyModalOpen = true;
+        StateHasChanged();
+    }
+
+    public async void OnAgencyDialogClose()
+    {
+        isAgencyModalOpen = false;
+        StateHasChanged();
+    }
+
+    private void showFullSellerPhone()
+    {
+        if (user != null)
+        {
+            phone = user.UserPhoneNumber != null ? user.UserPhoneNumber : "";
+            showSellerPhoneText = "&nbsp;";
+            buttonUserPhoneVisible = false;
+        }
+    }
+    #endregion
+
+
+    public async void isAgent()
+    {
+        var response = await Http.GetAsync($"UserController/CheckIfAgent/{userId}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            isAgency= true;
+        }
+        else
+        {
+            isAgency= false;
+        }
+    }
+
+    public string GetAgencyLink()
+    {
+        if (user.AgencyId != null)
+        {
+            return $"Agency/{user.AgencyId}";
+        }
+        else return "";
+    }
+
+    public string GetUserLink()
+    {
+        return $"User/{userId}";
+    }
+
+    public UserOfferListing? user = new();
+    public static int pageSize = 10;
+    public static int? Page = 1;
+    public static Inżynierka_Common.Listing.SortOrder sortOrder = new();
+
+    public UserPageFilteringViewModel? model;
+
+    public int? todayCount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isAgent();
+        await JS.InvokeVoidAsync("console.log", $"xdxdxduserId: {userId}");
+        if (viewerId != null && viewerId != "")
+        {
+            todayCount = await Http.GetFromJsonAsync<int>($"UserEventsController/TodayEventsCount");
+        }
+        
+
+        sortOrder.Sort = new();
+        KeyValuePair<string, string> sort = new("AddedDate", "DESC");
+        sortOrder.Sort.Add(sort);
+
+        model = new()
+            {
+                availableOfferTypes = AvailableOfferTypes.SALE_AND_RENT,
+                availableEstateType = AvailableEstateType.ALL,
+                Paging = new()
+                {
+                    PageSize = pageSize,
+                    PageNumber = Page != null ? Page.Value : 1
+                },
+                SortOrder = sortOrder
+            };
+
+        user = await _apiLogic.GetUserProfile(model, Int32.Parse(userId));
+        if(user != null && user.UserPhoneNumber!=null)
+        {
+            phone = new string(user.UserPhoneNumber.Take(3).ToArray()) + "...";
+        }
+        
+        StateHasChanged();
+    }
+
+    MatTheme theme = new()
+        {
+            Primary = "#4caf50",
+            Secondary = "#4caf50",
+            Surface = "#ffffff"
+        };
+}

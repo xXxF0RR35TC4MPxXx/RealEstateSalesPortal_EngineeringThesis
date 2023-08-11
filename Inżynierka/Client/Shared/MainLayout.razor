@@ -1,0 +1,47 @@
+﻿@inherits LayoutComponentBase
+<style>
+
+    * {
+        margin: 0;
+    }
+
+    html, body {
+        height: 100%;
+    }
+
+    .page-wrap {
+        min-height: 1140px;
+        width: 100%;
+        /* equal to footer height */
+        margin-bottom: -50px;
+    }
+
+        .page-wrap:after {
+            content: "";
+            display: block;
+        }
+
+        .site-footer, .page-wrap:after {
+            height: 50px;
+        }
+
+    .site-footer {
+        margin-top: 25px;
+        background-color: #212529;
+        color: #9B9D9E;
+
+    }
+
+</style>
+<NavMenu />
+<RadzenDialog />
+<RadzenNotification />
+<RadzenContextMenu />
+<RadzenTooltip />
+<MatToastContainer />
+<main class="page-wrap">
+    @Body
+</main>
+<footer class="site-footer">
+    <p style="font-size:20px; padding-top: 10px; padding-left: 15px; margin-bottom: 0px;">System powstał na Wydziale Informatyki Politechniki Białostockiej</p>
+</footer>

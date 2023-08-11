@@ -1,0 +1,97 @@
+﻿<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">@Title</h4>
+                <MatThemeProvider Theme="@okTheme">
+                    <MatButton type="button" class="close" @onclick="@ModalCancel">&times;</MatButton>
+                </MatThemeProvider>
+            </div>
+            <div class="modal-body">
+                <p>@Text</p>
+            </div>
+            <div class="modal-footer">
+                
+    
+
+                @switch (DialogType)
+                {
+                    case ModalDialogType.Ok:
+                        <MatThemeProvider Theme="@okTheme">
+                            <MatButton Unelevated="true" style="width:100%;" @onclick=@ModalOk>OK</MatButton>
+                        </MatThemeProvider>
+                        break;
+                    case ModalDialogType.OkCancel:
+                        <MatThemeProvider Theme="@cancelTheme"><MatButton @onclick=@ModalCancel Outlined="true">Anuluj</MatButton></MatThemeProvider>
+                        <MatThemeProvider Theme="@okTheme"><MatButton @onclick=@ModalOk Unelevated="true">OK</MatButton></MatThemeProvider>
+                        break;
+                    case ModalDialogType.YesNo:
+                        <MatThemeProvider Theme="@cancelTheme"><MatButton @onclick=@ModalCancel Outlined="true">Nie</MatButton></MatThemeProvider>
+                        <MatThemeProvider Theme="@okTheme"><MatButton @onclick=@ModalOk Unelevated="true">Tak</MatButton></MatThemeProvider>
+                        break;
+                    case ModalDialogType.DeleteCancel:
+                        <MatThemeProvider Theme="@cancelTheme"><MatButton @onclick=@ModalCancel Outlined="true">Anuluj</MatButton></MatThemeProvider>
+                        <MatThemeProvider Theme="@deleteTheme"><MatButton @onclick=@ModalOk Unelevated="true">Usuń</MatButton></MatThemeProvider>
+                        break;
+                    }
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    MatTheme okTheme = new MatTheme()
+        {
+            Primary = "green",
+            Background = "green",
+            OnPrimary = "white",
+        };
+
+    MatTheme deleteTheme = new MatTheme()
+        {
+            Primary = "#e03d3d",
+            Background = "#e03d3d",
+            OnPrimary = "white",
+            OnSurface = "#e03d3d"
+        };
+
+    MatTheme cancelTheme = new MatTheme()
+        {
+            Primary = "darkgray",
+            Background = "darkgray",
+            OnPrimary = "darkgray",
+            OnSecondary = "darkgray",
+            OnSurface = "darkgray"
+        };
+
+    [Parameter]
+    public string Title { get; set; }
+
+    [Parameter]
+    public string Text { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    [Parameter]
+    public ModalDialogType DialogType { get; set; }
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(false);
+    }
+
+    private Task ModalOk()
+    {
+        return OnClose.InvokeAsync(true);
+    }
+
+    public enum ModalDialogType
+    {
+        Ok,
+        OkCancel,
+        DeleteCancel,
+        YesNo
+    }
+}

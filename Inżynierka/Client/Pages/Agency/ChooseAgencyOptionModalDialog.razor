@@ -1,0 +1,168 @@
+﻿@using Inżynierka.Client.Logics;
+@using Inżynierka_Common.Enums
+@using Inżynierka_Common.Helpers
+@using System.ComponentModel.DataAnnotations;
+@inject NavigationManager NavManager
+@inject IMatToaster Toaster
+@inject IApiLogic _apiLogic
+<BlazorStyled.Styled>
+    .justified
+    {
+        text-align:justify;
+    }
+</BlazorStyled.Styled>
+<div class="modal fade show" id="myModal" style="display:block; background-color: rgba(10,10,10,.8);" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <MatThemeProvider Theme="@theme">
+                <div class="modal-header">
+                    <h4 class="modal-title">Sposób dołączenia do agencji</h4>
+                    <MatButton type="button" class="close" @onclick="@ModalCancel">&times;</MatButton>
+                </div>
+                <div class="modal-body">
+                    <p>Stać się częścią agencji możesz na dwa sposoby. Możesz:</p>
+                </div>
+                <div class="modal-footer">
+                    <div class="mat-layout-grid">
+                        <div class="mat-layout-grid-inner">
+                         
+                            <div class="mat-layout-grid-cell mat-layout-grid-cell-span-5">
+                                <p class="justified">Dołączyć do istniejącej agencji poprzez kod zaproszeniowy</p>
+                                <EditForm Model="model" OnValidSubmit="JoinByCode">
+                                    <DataAnnotationsValidator/>
+                                    <p>
+                                        <MatTextField Style="width:100%;" @bind-Value="model.invitationGuid" Label="Kod zaproszeniowy"></MatTextField>
+                                        <ValidationMessage For="@(() => model.invitationGuid)" />
+                                    </p>
+                                    <MatButton Style="width:100%;" Type="submit" Unelevated="true"><i style="position: absolute;left: 10px;top: 12px;" class="fa-solid fa-arrow-right-to-bracket"></i>&nbsp;Dołącz</MatButton>
+                                </EditForm>
+                            </div>
+                            <div class="mat-layout-grid-cell mat-layout-grid-cell-span-2">
+                                <p class="justified" style="text-align: center; margin-top: 150%;">lub</p>
+                            </div>
+                            <div class="mat-layout-grid-cell mat-layout-grid-cell-span-5">
+                                <p style="text-align: center; margin-top: 14%;">dodać swoją własną!</p>
+                                <MatButtonLink Unelevated="true" style="width:100%; margin-top: 61%;" Href="/Agency/Create"><i style="position: absolute;left: 10px;top: 12px;" class="fa-solid fa-square-plus"></i>&nbsp;Stwórz</MatButtonLink>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </MatThemeProvider>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int? userId { get; set; }
+
+    public class AgencyInvitationModel
+    {
+        [RegularExpression(@"[({]?[a-fA-F0-9]{8}[-]?([a-fA-F0-9]{4}[-]?){3}[a-fA-F0-9]{12}[})]?", ErrorMessage = "Podany ciąg nie jest poprawnym kodem.")]
+        public string? invitationGuid { get; set; }
+        public AgencyInvitationModel(string guid)
+        {
+            invitationGuid = guid;
+        }
+        public AgencyInvitationModel(){}
+    }
+
+    AgencyInvitationModel model = new();
+
+
+    MatTheme theme = new MatTheme()
+        {
+            Primary = "green",
+            Background = "green",
+            OnPrimary = "white",
+        };
+
+    [Parameter]
+    public EventCallback<bool?> OnClose { get; set; }
+
+    private Task ModalCancel()
+    {
+        return OnClose.InvokeAsync(null);
+    }
+
+    private async void JoinByCode()
+    {
+        if(model.invitationGuid == null || model.invitationGuid=="")
+        {
+            Show(MatToastType.Danger, $"Nie można wysłać pustego kodu", "Błąd", "");
+        }
+        else
+        {
+            string result = await _apiLogic.JoinAgencyByCode(model.invitationGuid);
+            if (result == "")
+            {
+                NavManager.NavigateTo($"/User/{userId}", true);
+            }
+            else
+            {
+                Show(MatToastType.Danger, $"{result}", "Błąd", "");
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _showProgressBar = Toaster.Configuration.ShowProgressBar;
+        _showCloseButton = Toaster.Configuration.ShowCloseButton;
+        _maximumOpacity = Toaster.Configuration.MaximumOpacity.ToString();
+        _showTransitionDuration = Toaster.Configuration.ShowTransitionDuration.ToString();
+        _visibleStateDuration = Toaster.Configuration.VisibleStateDuration.ToString();
+        _hideTransitionDuration = Toaster.Configuration.HideTransitionDuration.ToString();
+        _requireInteraction = Toaster.Configuration.RequireInteraction;
+
+    }
+
+    #region Toaster
+    private bool _showProgressBar;
+    private bool _showCloseButton;
+    private bool _actionOnClick;
+    private string _maximumOpacity;
+
+    private string _showTransitionDuration;
+    private string _visibleStateDuration;
+    private string _hideTransitionDuration;
+    private bool _requireInteraction;
+    public string _maxDisplayedToasts
+    {
+        get { return Toaster.Configuration.MaxDisplayedToasts.ToString(); }
+        set { Toaster.Configuration.MaxDisplayedToasts = Convert.ToInt32(value); }
+    }
+    private string _toastPosition
+    {
+        get { return Toaster.Configuration.Position.ToString(); }
+        set { Toaster.Configuration.Position = (MatToastPosition)Enum.Parse(typeof(MatToastPosition), value); }
+    }
+
+    public void Show(MatToastType type, string message, string title, string icon = "")
+    {
+        Toaster.Add(message, type, title, icon, config =>
+        {
+            config.ShowCloseButton = _showCloseButton;
+            config.ShowProgressBar = _showProgressBar;
+            config.MaximumOpacity = Convert.ToInt32(_maximumOpacity);
+
+            config.ShowTransitionDuration = Convert.ToInt32(_showTransitionDuration);
+            config.VisibleStateDuration = Convert.ToInt32(_visibleStateDuration);
+            config.HideTransitionDuration = Convert.ToInt32(_hideTransitionDuration);
+
+            config.RequireInteraction = _requireInteraction;
+
+            if (_actionOnClick)
+            {
+                config.Onclick = toast =>
+                {
+                    return Task.CompletedTask;
+                };
+            }
+        });
+    }
+    #endregion
+}

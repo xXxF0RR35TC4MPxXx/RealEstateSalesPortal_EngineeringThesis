@@ -1,0 +1,401 @@
+﻿@using Inżynierka.Client.Handlers;
+@using Inżynierka.Shared.DTOs.Offers.Read
+@inject HttpClient Http
+@inject IJSRuntime Js
+@inject AuthenticationStateProvider _authStateProvider
+@inject NavigationManager NavManager
+<BlazorStyled.Styled>
+    .singleOffer
+    {
+        border-radius: 15px; 
+        box-shadow: rgb(156, 156, 158) 0px 0px 20px -8px;
+        width:100%;
+        height: 30vh;
+        padding: 15px;
+    }
+
+    .photo-thumbnail
+    {
+        float: left;
+        width: 30%;
+        margin-right: 15px;
+        height: 100%;
+        box-shadow: rgb(156, 156, 158) 0px 0px 20px -8px;
+        border-radius: 8px;
+    }
+
+
+    .offer-right-side 
+    {
+        position: relative;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .offer-title
+    {
+        text-decoration:none;
+        color: black;
+        font-size: 21px;
+        max-width:90%;
+        font-family: "Open Sans", sans-serif;
+        font-weight: bold;
+
+    }
+
+    .extra-info
+    {
+        text-decoration:none;
+        color: gray;
+        font-family: "Open Sans", sans-serif;
+        position:absolute;
+        top: 38%;
+    }
+
+    .price-per-meter
+    {
+        text-decoration:none;
+        color: gray;
+        font-family: "Open Sans", sans-serif;
+        position:absolute;
+        right:0;
+        margin-bottom: 0px;
+        bottom: 20%;
+    }
+
+    .room-count
+    {
+        text-decoration:none;
+        color: gray;
+        font-family: "Open Sans", sans-serif;
+        position: absolute;
+        right:0;
+        margin-bottom: 0px;
+        bottom: 36%;
+    }
+
+    .offer-price
+    {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        margin-bottom: 0px;
+        text-decoration:none;
+        color: black;
+        font-size: 24px;
+        font-family: "Open Sans", sans-serif;
+        font-weight: bold;
+    }
+
+    .fav:hover .fa-heart-o,
+    .fav .fa-heart {
+    display: none;
+    }
+    .fav:hover .fa-heart {
+    display: inline;
+    }
+
+    .unfav:hover .fa-heart,
+    .unfav .fa-heart-broken {
+    display: none;
+    }
+    .unfav:hover .fa-heart-broken {
+    display: inline;
+    }
+
+    .favButton
+    {
+        position:absolute !important;
+        top: 0;
+        right: 0;
+    }
+
+    .seller-type
+    {
+        position:absolute !important;
+        bottom:0;
+        left:0;
+        margin-bottom: 0px;
+        min-width: 14vw;
+        text-decoration:none;
+        color: gray;
+        font-family: "Open Sans", sans-serif;
+    }
+
+    .seller-type-agency
+    {
+        position:absolute !important;
+        bottom: 6.5vh;
+        left:0;
+        min-width: 14vw;
+        text-decoration:none;
+        color: gray;
+        font-family: "Open Sans", sans-serif;
+    }
+
+    .agency-div
+    {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+    }
+
+    a
+    {
+        text-decoration:none !important;
+    }
+
+    .agency-logo
+    {
+        height: 8vh;
+        max-width: 20vw;
+        margin-right: 10px;
+        width: auto;
+    }
+
+    .agency-name
+    {
+        margin: 0;
+        text-decoration:none;
+        color: black;
+        font-weight: bold;
+    }
+
+    .photo
+    {
+        width:100%;
+        height:100%;
+        object-fit: cover;
+        overflow: hidden;
+        border-radius: 8px;
+    }
+
+</BlazorStyled.Styled>
+<MatThemeProvider Theme="@theme">
+<div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+
+<div class="mat-layout-grid-cell mat-layout-grid-cell-span-8">  
+    <div class="singleOffer">
+        <NavLink href="@link">
+        @{
+            <div class="photo-thumbnail">
+                @if (Photo != null)
+                {
+                    <img src='@Photo' class="photo"/>
+                }
+                else
+                {
+                    <img src=/images/noImgThumb.jpg class="photo"/>
+                }
+            </div>
+                    
+        }
+        </NavLink>
+        <div class="offer-right-side">
+            <NavLink href="@link">
+            <p class="offer-title">@OfferTitle</p>
+            <p class="extra-info">
+                @GetTypeAndLocation()
+            </p>
+            @{
+                <p class="price-per-meter"> @PricePerMeter zł/m<sup>2</sup></p>
+                if(RoomCount > 0)
+                {
+                    <p class="room-count"> @RoomCount @PolishConjugationHelper.GetRoomWord(RoomCount)</p>
+                }
+                    
+                if(OfferType == "Sprzedaż")
+                {
+                    <p class="offer-price">@Price zł</p>
+                }
+                else
+                {
+                    <p class="offer-price">@Price zł/msc</p>
+                }
+            }
+                    
+
+        @{
+            if(SellerType == "PRIVATE")
+            {
+                <p class="seller-type">Oferta prywatna</p>
+            }
+            else
+            {
+                <div class="agency-div">
+                    <NavLink href="@GetAgencyLink()">
+                        <p class="seller-type-agency">Oferta biura nieruchomości</p>
+                                
+                        <p class="agency-name">@if(AgencyLogo != null){<img src='@AgencyLogo' class="agency-logo" />} @AgencyName</p>
+                    </NavLink>
+                </div>
+            }
+        }    
+        </NavLink>
+           
+            @if (isFav)
+            {
+                <MatButton class="unfav favButton" @onclick="()=>RemoveFromFavourites(Id)" Outlined="true">
+                    <i class="fas fa-heart" style="color: #008000;"></i>
+                    <i class="fas fa-heart-broken" style="color: #008000;"></i
+                </MatButton>
+            }
+            else
+            {
+                <MatButton class="fav favButton" @onclick="()=>AddToFavourites(Id)" Outlined="true">
+                    <i class="fa fa-heart-o" style="color: #008000;"></i>
+                    <i class="fas fa-heart" style="color: #008000;"></i>
+                </MatButton>
+            }
+            
+        </div> 
+    </div>
+</div>
+<div class="mat-layout-grid-cell mat-layout-grid-cell-span-2" />
+</MatThemeProvider>
+@code {
+
+    public string GetTypeAndLocation()
+    {
+        string result = "";
+        if(FromUserProfile)
+        {
+            result += $"{EstateType} na {OfferType} w: ";
+        }
+        result += $"{City}, "; 
+        result += $"woj. {Voivodeship}";
+        return result;
+    }
+
+
+    public string GetAgencyLink()
+    {
+        if (AgencyId != null)
+        {
+            return $"Agency/{AgencyId}";
+        }
+        else return "";
+    }
+
+    private async void AddToFavourites(int Id)
+    {
+        if(MyId != null)
+        {
+            await Http.GetAsync($"OfferController/AddToFavourites/{Id}");
+            isFav = true;
+            StateHasChanged();
+        }
+        else
+        {
+            NavManager.NavigateTo("/Auth/SignIn", true);
+        }
+    }
+
+    private async void RemoveFromFavourites(int Id)
+    {
+        await Http.GetAsync($"OfferController/RemoveFromFavourites/{Id}");
+        isFav = false;
+        StateHasChanged();
+    }
+
+    private bool isFav = false;
+    private async void CheckIfMyFavourite(int? userId, int Id)
+    {
+        await Js.InvokeVoidAsync("console.log", $"Przed: userId: {userId} / Id: {Id} / isFav: {isFav}");
+        if (userId == null)
+            return;
+
+        isFav = await Http.GetFromJsonAsync<bool>($"OfferController/CheckIfFavourite/{userId.Value}/{Id}");
+        await Js.InvokeVoidAsync("console.log", $"Po: userId: {userId} / Id: {Id} / isFav: {isFav}");
+        StateHasChanged();
+
+    }
+
+
+    public string link = "";
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int Id { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int? MyId { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public bool FromUserProfile { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string OfferTitle { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Voivodeship { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? City { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int Price { get; set; } //cena całkowita
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int PricePerMeter { get; set; } //cena za m2
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int? RoomCount { get; set; } //liczba pokoi
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int? Area { get; set; } //powierzchnia domu
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int? AgencyId { get; set; } //id agencji
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? AgencyName { get; set; } //nazwa agencji
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? AgencyLogo { get; set; } //logo agencji
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string SellerType { get; set; } //rodzaj oferty (Priv / agent)
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? OfferType { get; set; } // sell / rent
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? EstateType { get; set; } // House/Hall/Apartment
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Photo { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        StateHasChanged();
+        CheckIfMyFavourite(MyId, Id);
+        await base.OnInitializedAsync();
+    }       
+
+    protected override async Task OnParametersSetAsync()
+    {
+        link = $"Offer/{Id}";
+    }
+
+    MatTheme theme = new MatTheme()
+    {
+        Primary = "green",
+        Secondary = "green"
+    };
+}

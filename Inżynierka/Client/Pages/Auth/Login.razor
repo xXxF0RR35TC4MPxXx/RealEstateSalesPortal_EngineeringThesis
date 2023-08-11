@@ -1,0 +1,152 @@
+﻿@page "/Auth/SignIn"
+<PageTitle>Logowanie - BuyDom.pl</PageTitle>
+@using Blazored.LocalStorage
+@using Inżynierka.Client.Logics
+@using Inżynierka.Shared.ViewModels.User
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IApiLogic _apiLogic
+@inject NavigationManager _navigationManager
+@inject ILocalStorageService _localStorageService
+
+<BlazorStyled.Styled>
+    .content{
+    width: 450px;
+    height: 1080px;
+    margin: auto;
+    padding: 30px;
+    padding-left:0px;
+    }
+    .nav-pills{
+    width: 450px;
+    }
+    .nav-item{
+    width: 50%;
+    }
+    .nav-pills .nav-link{
+    font-weight: bold;
+    padding-top: 13px;
+    text-align: center;
+    background: #343436;
+    color: #fff;
+    border-radius: 30px;
+    height: 100px;
+    }
+    .nav-pills .nav-link.active{
+    background: #fff;
+    color: #000;
+    }
+    .tab-content{
+    position: absolute;
+    width: 450px;
+    height: auto;
+    margin-top: -50px;
+    background: #fff;
+    color: #000;
+    border-radius: 30px;
+    z-index: 69;
+    box-shadow: 0px 10px 10px rgba(0, 0, 0, 0.4);
+    padding: 30px;
+    margin-bottom: 50px;
+    }
+
+    .myBtn{
+    display: inline-block;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #212529;
+    text-align: center;
+    text-decoration: none;
+    vertical-align: middle;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    background-color: lightskyblue;
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: .25rem;
+    color: white;
+    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    }
+
+    .myBtn:hover {
+    color: #0a58ca;
+    }
+
+    .myBtn:focus {
+    background-color:#0D6EFD;
+    }
+
+    .page-wrap{
+        min-height: 150%;
+    }
+
+    .tab-content button{
+    border-radius: 15px;
+    width: 150px;
+    margin: 0 auto;
+    margin-top: 15px;
+    float: right;
+    }
+</BlazorStyled.Styled>
+<AuthorizeView>
+    <Authorized>
+        @{
+            _navigationManager.NavigateTo("/homepage");
+        }
+    </Authorized>
+</AuthorizeView>
+<div class="content">
+    <!-- Nav pills -->
+    <ul class="nav nav-pills" role="tablist">
+        <li class="nav-item" style="padding-top: 10px; ">
+            <NavLink class="nav-link" style="border-radius: 30px;" href="/Auth/SignIn">Logowanie</NavLink>
+        </li>
+        <li class="nav-item" >
+            <NavLink class="nav-link" style="border-radius: 30px; background-color: lightskyblue;" href="/Auth/Register">Rejestracja</NavLink>
+        </li>
+    </ul>
+
+    <!-- Tab panes -->
+    <div class="tab-content">
+        <div id="login" class="container tab-pane active">
+            <div class="form-group">
+                <label for="exampleFormControlInput1">Adres email</label>
+                <input @bind="loginModel.Email" type="email" class="form-control" id="exampleFormControlInput1" placeholder="Email">
+            </div>
+            <div class="form-group" style="margin-top: 15px;">
+                <label for="exampleInputPassword1">Hasło</label>
+                <input @bind="loginModel.Password" type="password" class="form-control" id="exampleInputPassword1" placeholder="*****">
+                <small id="emailHelp" class="form-text text-muted">@message</small>
+            </div>
+            <div style="padding-top: 15px;">
+                <NavLink style="margin-top: 10px; text-decoration:none;" href="Auth/RecoverPasswordForm">Nie pamiętam hasła</NavLink>
+                <button @onclick="UserLogin" type="submit" class="myBtn" style="margin: 0px auto 0px;">@text<Circle Center="true" Color="white" Size="@size"></Circle></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private SignInViewModel loginModel = new SignInViewModel();
+    private string message = "";
+    private string size = "0px";
+    private string text = "Zaloguj się";
+    private async Task UserLogin()
+    {
+        size = "16px";
+        text = "";
+        var message = await _apiLogic.LoginAsync(loginModel);
+        if (message == "Success")
+        {
+            await _localStorageService.SetItemAsStringAsync("isauthenticated", "true");
+            _navigationManager.NavigateTo("/homepage", true);
+        }
+        else{
+            this.message = message;
+            size = "0px";
+            text = "Zaloguj się";
+        }
+    }
+}
